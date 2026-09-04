@@ -132,12 +132,22 @@ export function solve(pose, view) {
 
 const easeInOut = (t) => 0.5 - 0.5 * Math.cos(Math.PI * t);
 
+/*
+ * Interpolates the standard pose fields plus ANY other numeric field an
+ * exercise carries. That last part matters: the 3D renderer reads extra keys
+ * like hip3d and elbow3d, and a fixed key list would silently drop them
+ * mid-animation, leaving the 3D figure to fall back on the 2D angles.
+ */
 export function lerpPose(a, b, t) {
   const out = {};
-  for (const k of Object.keys(DEFAULT_POSE)) {
-    const av = a[k] ?? DEFAULT_POSE[k];
-    const bv = b[k] ?? DEFAULT_POSE[k];
-    out[k] = av + (bv - av) * t;
+  const keys = new Set([...Object.keys(DEFAULT_POSE), ...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    const av = a[k], bv = b[k];
+    const aNum = typeof av === 'number', bNum = typeof bv === 'number';
+    if (!aNum && !bNum) continue;
+    const A = aNum ? av : (DEFAULT_POSE[k] ?? bv);
+    const B = bNum ? bv : (DEFAULT_POSE[k] ?? av);
+    out[k] = A + (B - A) * t;
   }
   return out;
 }

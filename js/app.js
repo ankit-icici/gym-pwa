@@ -1,6 +1,25 @@
 import { createFigure, createClock } from './rig.js';
 import { createAnatomy, MUSCLES } from './anatomy.js';
 
+/* three.js is ~685 KB, so it is only ever fetched when a detail screen opens.
+   Browse and workout screens stay on the lightweight SVG figures. */
+let threeMods = null;
+async function loadThree(groupId) {
+  if (threeMods) return threeMods;
+  const [viewer, scenes] = await Promise.all([
+    import('./three/viewer.js'),
+    import(`./data/${groupId}3d.js`),
+  ]);
+  threeMods = { viewer, scenes };
+  return threeMods;
+}
+const webglOK = (() => {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch { return false; }
+})();
+
 /* ============================================================
    Muscle-group registry.
    To add a group: write js/data/<id>.js in the shape of back.js and
@@ -92,9 +111,14 @@ const io = new IntersectionObserver((entries) => {
   }
 }, { rootMargin: '160px 0px' });
 
+let active3d = null;
+
 function releaseFigures() {
   for (const [node, rec] of mounted) { rec.stop?.(); io.unobserve(node); }
   mounted.clear();
+  active3d?.stop?.();
+  active3d?.view?.dispose();
+  active3d = null;
 }
 
 function mountFigure(host, exercise, speed = 1) {
@@ -337,7 +361,8 @@ async function screenDetail(gid, eid) {
   root.innerHTML = `
     <div class="screen wrap">
       <div class="stage">
-        <div class="stage-fig" data-fig="${e.id}" data-big="1">
+        <div class="stage-fig" id="stage3d">
+          <div class="stage-hint" id="hint">Drag to rotate</div>
           <button class="play-toggle" data-play aria-label="Pause animation">${svgIcon('pause')}</button>
         </div>
         <div class="stage-anat">
@@ -349,6 +374,8 @@ async function screenDetail(gid, eid) {
         </div>
       </div>
 
+      <div class="cams" id="cams" hidden></div>
+
       <dl class="facts">
         <div class="fact"><dt>Equipment</dt><dd>${e.gear}</dd></div>
         <div class="fact"><dt>Sets &amp; reps</dt><dd>${e.setsReps}</dd></div>
@@ -357,10 +384,10 @@ async function screenDetail(gid, eid) {
 
       ${e.secondary?.length ? `
         <div class="section-head"><h2>Also works</h2></div>
-        <div class="card-meta">${e.secondary.map((s) => `<span class="tag">${MUSCLES[s]?.name ?? s}</span>`).join('')}</div>` : ''}
+        <div class="card-meta">${e.secondary.map((sx) => `<span class="tag">${MUSCLES[sx]?.name ?? sx}</span>`).join('')}</div>` : ''}
 
       <div class="section-head"><h2>How to do it</h2></div>
-      <div class="steps">${e.howTo.map((s) => `<div class="step"><p>${s}</p></div>`).join('')}</div>
+      <div class="steps">${e.howTo.map((t) => `<div class="step"><p>${t}</p></div>`).join('')}</div>
 
       <div class="section-head"><h2>Form cues</h2></div>
       <div class="cues">${e.cues.map((c) => `<div class="cue">${svgIcon('spark')}<span>${c}</span></div>`).join('')}</div>
@@ -368,74 +395,68 @@ async function screenDetail(gid, eid) {
 
   hydrate(mod);
 
-  const box = root.querySelector('[data-big]');
+  const box = document.getElementById('stage3d');
   const btn = root.querySelector('[data-play]');
+  const period = (e.tempo || 2800) * 1.25;   // a touch slower in 3D, to study
   let playing = true;
-  btn.addEventListener('click', () => {
-    const rec = mounted.get(box);
-    if (!rec) return;
-    playing = !playing;
-    if (playing) { rec.stop = clock.add(rec.setTime, rec.period); btn.innerHTML = svgIcon('pause'); btn.setAttribute('aria-label', 'Pause animation'); }
-    else { rec.stop?.(); rec.stop = null; io.unobserve(box); btn.innerHTML = svgIcon('play'); btn.setAttribute('aria-label', 'Play animation'); }
-  });
-}
 
-async function screenWorkout(gid) {
-  const mod = await loadGroup(gid);
-  if (!mod) return screenHome();
-  const { group, byId } = mod;
-  setBar(`${group.name} Day`, { back: `#/g/${gid}` });
+  // Fall back to the flat figure if WebGL is missing or three.js fails to load;
+  // an exercise with no demonstration at all would be worse than a 2D one.
+  const useSvg = () => {
+    box.querySelector('.stage-hint')?.remove();
+    const { svg, setTime } = createFigure(e);
+    box.insertBefore(svg, box.firstChild);
+    const rec = { setTime, period, stop: null };
+    mounted.set(box, rec);
+    io.observe(box);
+  };
 
-  let w = loadWorkout(gid);
-  if (!w) {
-    const filter = store.get(`gym.filter.${gid}`, 'All');
-    w = {
-      date: todayKey(), filter,
-      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
-    };
-    saveWorkout(gid, w);
+  if (!webglOK) { useSvg(); }
+  else {
+    try {
+      const { viewer, scenes } = await loadThree(gid);
+      if (parseRoute().exercise !== eid) return;   // navigated away mid-load
+      const view = viewer.createViewer(box, e, { scene3d: scenes.SCENES[e.id] });
+      const stop = clock.add(view.setTime, period);
+      active3d = { view, stop };
+
+      const cams = document.getElementById('cams');
+      cams.hidden = false;
+      cams.innerHTML = viewer.ANGLE_ORDER
+        .map((k) => `<button class="cam" data-cam="${k}">${viewer.ANGLE_LABEL[k]}</button>`)
+        .join('');
+      cams.addEventListener('click', (ev) => {
+        const b = ev.target.closest('[data-cam]');
+        if (!b) return;
+        view.setAngle(b.dataset.cam);
+        for (const x of cams.children) x.setAttribute('aria-pressed', x === b);
+      });
+      cams.firstElementChild?.setAttribute('aria-pressed', 'true');
+
+      // The hint has done its job the moment they touch the model.
+      const hint = document.getElementById('hint');
+      box.addEventListener('pointerdown', () => hint?.classList.add('is-gone'), { once: true });
+      setTimeout(() => hint?.classList.add('is-gone'), 4200);
+    } catch {
+      active3d = null;
+      useSvg();
+    }
   }
 
-  const done = w.items.filter((i) => i.done).length;
-  const total = w.items.length;
-
-  root.innerHTML = `
-    <div class="screen wrap">
-      <div class="progress">
-        ${ringSvg(total ? done / total : 0)}
-        <div class="progress-txt">
-          <div class="t">${done === total ? 'Session complete. Well done.' : `${done} of ${total} finished`}</div>
-          <div class="s">One exercise per target area${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
-        </div>
-      </div>
-
-      <div class="stack">
-        ${w.items.map((it, i) => {
-          const e = byId[it.id];
-          return `<div class="slot ${it.done ? 'is-done' : ''}">
-            <button class="slot-open" data-go="#/g/${gid}/e/${e.id}">
-              <span class="thumb" data-fig="${e.id}"></span>
-              <span class="slot-body">
-                <span class="slot-name">${e.name}</span>
-                <span class="slot-meta">
-                  <span class="tag tag-muscle"><i class="tag-dot"></i>${MUSCLES[e.target].short}</span>
-                  <span class="slot-reps">${e.setsReps}</span>
-                </span>
-              </span>
-            </button>
-            <button class="slot-swap" data-swap="${i}" aria-label="Swap ${e.name} for another ${MUSCLES[e.target].short} exercise">${svgIcon('swap')}</button>
-            <button class="tick" data-tick="${i}" aria-pressed="${it.done}" aria-label="Mark ${e.name} ${it.done ? 'not done' : 'done'}">${svgIcon('check')}</button>
-          </div>`;
-        }).join('')}
-      </div>
-
-      <div class="btn-row" style="margin-top:16px">
-        <button class="btn btn-ghost" data-regen="${gid}">${svgIcon('shuffle')} Rebuild</button>
-        <button class="btn btn-ghost" data-clear="${gid}">${svgIcon('trash')} Clear</button>
-      </div>
-    </div>`;
-
-  hydrate(mod);
+  btn.addEventListener('click', () => {
+    playing = !playing;
+    btn.innerHTML = svgIcon(playing ? 'pause' : 'play');
+    btn.setAttribute('aria-label', playing ? 'Pause animation' : 'Play animation');
+    if (active3d) {
+      if (playing) active3d.stop = clock.add(active3d.view.setTime, period);
+      else { active3d.stop?.(); active3d.stop = null; }
+      return;
+    }
+    const rec = mounted.get(box);
+    if (!rec) return;
+    if (playing) rec.stop = clock.add(rec.setTime, period);
+    else { rec.stop?.(); rec.stop = null; io.unobserve(box); }
+  });
 }
 
 /* Attach every animated figure and anatomy map the markup asked for. */

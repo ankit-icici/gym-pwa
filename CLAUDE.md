@@ -1,14 +1,34 @@
 # Working on this repo
 
-A dependency-free static PWA. There is **no build step and no package.json** —
-edit the files and reload. Keep it that way; it is what makes the project
-portable across machines and sessions.
+A static PWA with **no build step and no package.json** — edit the files and
+reload. three.js is vendored at `vendor/three.module.min.js` rather than pulled
+from a CDN, so the app still installs and runs offline. Keep it that way; it is
+what makes the project portable across machines and sessions.
+
+## Two renderers, on purpose
+
+| | where | why |
+| --- | --- | --- |
+| **SVG** (`js/rig.js`) | cards, workout rows | Dozens can animate at once for almost nothing. Browsers cap live WebGL contexts, so a 24-card grid of 3D scenes is not an option. |
+| **3D** (`js/three/`) | exercise detail screen | This is where you study form, and you can orbit the camera to check it from any angle. |
+
+**Both renderers share one set of authored keyframe poses.** Do not fork the
+pose data. If a movement needs different numbers in 3D, add a `*3d` field
+(`shoulder3d`, `abduct3d`, `elbow3d`, `hip3d`, `knee3d`, `torso3d`) — the 3D rig
+prefers those and the 2D rig ignores them.
+
+three.js is imported dynamically, only when a detail screen opens, so browsing
+never pays for it.
 
 ## Testing your changes
 
 ```bash
 python3 -m http.server 4173
 ```
+
+`debug3d.html` is the 3D bench: one exercise at a time, a scrub bar, and camera
+presets. `?id=<exercise-id>` jumps straight to one. Use it whenever you touch a
+pose or a 3D scene.
 
 Open `debug.html` after touching any pose — it renders every exercise at both
 keyframes side by side, which catches broken kinematics far faster than
@@ -130,3 +150,46 @@ the selector, which trims from the end of the priority list.
 
 `node tools-make-icons.mjs icons` regenerates every PNG from source. It is a
 self-contained rasteriser plus PNG encoder — no image libraries.
+
+
+## The 3D rig
+
+`js/three/figure.js` builds a bone hierarchy of `THREE.Group` nodes with tapered
+limb meshes hung off them. **Y is up, the floor is y = 0, and the figure faces
++Z.** Every limb group points down its local -Y at rest.
+
+Three things here will bite you if you forget them:
+
+1. **`shoulder` is absolute, but the arm hangs off the spine.** Pose data means
+   "angle from vertical", so `applyPose` adds the torso lean back in
+   (`flex = torso + shoulder`). Skip that and every bent-over lift ends up with
+   its arms swinging out behind the figure.
+2. **Rotation order is XYZ**, which Three applies Z then Y then X. At the
+   shoulder that is exactly right: abduct in the frontal plane, then swing
+   forward.
+3. **`elbowPlane`** decides which way the elbow hinge points — `'sagittal'` for
+   rows and hinges, `'frontal'` for pulldowns and flyes where the humerus is
+   rotated and the forearm folds toward the midline. It defaults from `view`.
+
+Muscles are slices of the torso's surface: open cylinder segments at a slightly
+larger radius, defined in `BACK_MUSCLES` by a height range and a theta arc where
+theta = 0 faces +Z and theta = PI faces the back. `torsoRadiusAt()` **must track
+the torso mesh exactly** — if it models a waist the mesh does not have, the
+patches sink inside the body and disappear.
+
+The camera auto-frames from the figure's swept bounds, deliberately ignoring
+equipment: fitting a pulldown tower would shrink the person to nothing, and
+cropping the machine is what real exercise footage does. It defaults to a REAR
+three-quarter view, because a front view hides every muscle this app is about.
+
+`js/three/kit3d.js` holds composable equipment parts; `js/data/back3d.js` wires
+them per exercise. That file is separate from `data/back.js` so the browse
+screens never import three.js. Equipment coordinates convert from the 2D data as:
+
+- side-view exercise: 2D `(x, y)` -> 3D `(0, -y, x)`
+- front-view exercise: 2D `(x, y)` -> 3D `(x, -y, 0)`
+
+One WebGL renderer is shared app-wide and moved between mounts. `createViewer`
+paints one frame immediately, because the shared clock does not run while the
+tab is hidden or motion is reduced, and a blank canvas in those cases is a bug
+users will hit.

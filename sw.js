@@ -1,7 +1,7 @@
 /* Service worker: precache the shell, then serve it cache-first so the app
    opens instantly and works with no signal in the gym basement.
    Bump CACHE whenever you ship changes. */
-const CACHE = 'gym-v2';
+const CACHE = 'gym-v3';
 const SHELL = [
   './',
   './index.html',
@@ -12,6 +12,11 @@ const SHELL = [
   './js/anatomy.js',
   './js/equipment.js',
   './js/data/back.js',
+  './js/data/back3d.js',
+  './js/three/figure.js',
+  './js/three/kit3d.js',
+  './js/three/viewer.js',
+  './vendor/three.module.min.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];

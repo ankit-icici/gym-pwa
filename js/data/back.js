@@ -15,7 +15,9 @@ import { scene, bar, barOnBack, dumbbells, pullupBar, cableRig, latBar, handle, 
 const STAND = -86;   // pelvis height standing, feet on the floor
 const SIT = -46;     // pelvis height seated, side view
 const SIT_F = -58;   // pelvis height seated, front view (thighs foreshortened)
-const SEATED_LEGS_F = { thighK: 0.38, knee: 0, rootY: SIT_F };
+/* Seated. thighK foreshortens the thigh for the 2D front view; hip3d/knee3d
+   are the real joint angles the 3D viewer uses instead. */
+const SEATED_LEGS_F = { thighK: 0.38, knee: 0, rootY: SIT_F, hip3d: 84, knee3d: 84 };
 const VIEWBOX = '-116 -214 232 236';
 
 export const group = {
@@ -244,6 +246,8 @@ export const exercises = [
     secondary: ['lats', 'teres'],
     level: 'Beginner',
     view: 'side',
+    // One side works while the other braces, so the far arm is posed apart.
+    asymmetric: true,
     // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
     viewBox: '-90 -214 232 236',
     tempo: 2800,
@@ -398,8 +402,8 @@ export const exercises = [
     ],
     cues: ['Back stays flat from start to finish', 'Bar travels in a straight vertical line', 'Squeeze the glutes at lockout — do not lean back'],
     poses: [
-      { rootY: -62, torso: 66, hip: 52, knee: 74, shoulder: -66, elbow: 2, neck: -22 },
-      { rootY: STAND, torso: 2, hip: 0, knee: 4, shoulder: -2, elbow: 0, neck: 0 },
+      { rootY: -62, torso: 66, hip: 52, knee: 74, shoulder: 4, elbow: 2, neck: -22 },
+      { rootY: STAND, torso: 2, hip: 0, knee: 4, shoulder: 2, elbow: 0, neck: 0 },
     ],
     equipmentLayer: scene([bar({ view: 'side', plate: 26 })]),
   },
@@ -484,8 +488,8 @@ export const exercises = [
     ],
     cues: ['Shorter range means you can go heavier — respect that', 'Do not bounce off the pins', 'Great for building the upper back and traps'],
     poses: [
-      { rootY: -74, torso: 48, hip: 26, knee: 34, shoulder: -48, elbow: 2, neck: -16 },
-      { rootY: STAND, torso: 2, hip: 0, knee: 4, shoulder: -2, elbow: 0, neck: 0 },
+      { rootY: -74, torso: 48, hip: 26, knee: 34, shoulder: 4, elbow: 2, neck: -16 },
+      { rootY: STAND, torso: 2, hip: 0, knee: 4, shoulder: 2, elbow: 0, neck: 0 },
     ],
     equipmentLayer: scene([
       frame([[-70, 0, -70, -150], [70, 0, 70, -150], [-70, -46, -46, -46], [70, -46, 46, -46]]),
@@ -535,6 +539,8 @@ export const exercises = [
     secondary: ['rhomboids', 'lats'],
     level: 'Advanced',
     view: 'side',
+    // One side works while the other braces, so the far arm is posed apart.
+    asymmetric: true,
     // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
     viewBox: '-118 -214 232 236',
     tempo: 2800,
