@@ -22,7 +22,18 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // `cache: 'reload'` forces every precache fetch past the HTTP cache. GitHub
+  // Pages serves assets with max-age=600, so a plain addAll right after a
+  // deploy can bake stale files into a fresh cache — and half-old, half-new
+  // ES modules break in confusing ways.
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => Promise.all(SHELL.map((url) =>
+        fetch(new Request(url, { cache: 'reload' }))
+          .then((res) => (res.ok ? c.put(url, res) : null))
+          .catch(() => null))))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (e) => {
