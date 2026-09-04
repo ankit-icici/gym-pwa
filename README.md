@@ -11,14 +11,19 @@ Currently shipping the **Back** group: 24 exercises across 6 target areas.
 - **Browse by muscle.** Exercises are grouped under the muscle they actually
   train — Latissimus Dorsi, Rhomboids & Mid-Traps, Trapezius, Erector Spinae,
   Teres, Posterior Deltoid — and filterable by equipment.
-- **Animated demonstrations.** Every exercise has a looping figure animation
-  drawn from hand-authored keyframe poses, plus the gym equipment it uses. No
-  video files, no network calls: it is all SVG driven by one rAF loop.
-- **Anatomy map.** Each exercise shows a posterior-view body with the primary
-  muscle lit up and named, and its secondary muscles shaded.
-- **Build a day.** One tap picks six exercises — exactly one per target area —
-  so a generated session always covers the whole muscle group. Tick them off,
-  swap any slot for another exercise hitting the same muscle, or rebuild.
+- **Animated demonstrations.** Every exercise has a looping animation of an
+  anatomical figure, plus the gym equipment it uses. No video files and no
+  network calls: it is all SVG driven by one rAF loop.
+- **The muscle lights up on the body.** The trained muscle is painted onto the
+  moving figure and brightens toward peak contraction, so the animation tells
+  you what it works rather than just how it looks. Orange means muscle and
+  nothing else — the equipment stays monochrome.
+- **Anatomy map.** The detail screen also shows a posterior-view body with the
+  primary muscle named and its secondary muscles shaded.
+- **Build a day.** One tap picks one exercise per target area, so a generated
+  session always covers the whole muscle group. Choose 4, 5 or 6 exercises;
+  shorter sessions trim the lowest-priority areas. Tick them off, swap any slot
+  for another exercise hitting the same muscle, or rebuild.
 - **Works offline, installs to the home screen, light and dark themes.**
 
 ## Running it locally

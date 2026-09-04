@@ -18,7 +18,9 @@ export const E = (tag, attrs = {}) => {
 
 export function scene(parts) {
   return (_el, gStatic, gLive) => {
-    gStatic.appendChild(E('line', { class: 'eq-floor', x1: -108, y1: 0, x2: 108, y2: 0 }));
+    // Wider than any viewBox, so per-exercise framing can shift freely
+    // without the ground line ever stopping short.
+    gStatic.appendChild(E('line', { class: 'eq-floor', x1: -320, y1: 0, x2: 320, y2: 0 }));
     const updates = parts.map((p) => p(gStatic, gLive)).filter(Boolean);
     return (s, pose, u) => { for (const f of updates) f(s, pose, u); };
   };

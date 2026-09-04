@@ -18,11 +18,28 @@ enlarges the cells.
 Browsers cache ES modules aggressively. If an edit does not appear, serve with
 `Cache-Control: no-store` and unregister the service worker.
 
+## What the figure is made of
+
+`js/rig.js` does two jobs. It solves joint positions from keyframe poses, and
+it draws an anatomical figure from those joints.
+
+The body is **not** stick lines. Every segment is a `taper()` — the convex hull
+of the two circles at its end joints — plus a disc at each joint. Drawing those
+overlapping shapes into one group with a single fill unions them for free, no
+boolean geometry required. Joint thicknesses live in `RADII`, separately for the
+side and front views.
+
+The muscle an exercise trains is painted **onto the body**, brightening toward
+peak contraction (`contraction(u)`). This is the thing that makes the animation
+informative rather than decorative — do not regress it to a stick figure with a
+caption. Orange is reserved exclusively for muscle; all gym equipment stays
+monochrome so the eye lands on the working tissue.
+
 ## The pose system
 
-`js/rig.js` is a 2D skeletal animator. Each exercise supplies keyframe poses;
-the rig eases between them and loops forward-then-backward, so a two-pose
-exercise reads as concentric → eccentric → repeat.
+Each exercise supplies keyframe poses; the rig eases between them and loops
+forward-then-backward, so a two-pose exercise reads as concentric → eccentric →
+repeat.
 
 **All angles are degrees measured from STRAIGHT DOWN, positive rotating toward
 +x — the direction the figure faces.** So `0` hangs straight down, `90` points
@@ -56,22 +73,58 @@ Two gotchas worth knowing:
 Choose `view: 'side'` when the movement happens front-to-back (rows, deadlifts,
 hinges) and `view: 'front'` when it happens laterally (pulldowns, flyes, shrugs).
 
+## Muscle shapes
+
+`MUSCLE_SHAPES` in `js/rig.js` maps each region to polygons in torso-local
+coordinates, one set per view:
+
+- `u` runs 0 at the pelvis to 1 at the base of the neck.
+- `v` runs across the torso, and **v = 1 means the edge of the body at that
+  height** — it is scaled by `torsoRadius(u)`, not by a fixed width. This is
+  deliberate: with a fixed width, a shape like the lats gets clipped away
+  wherever the torso narrows, leaving a thin stripe down the middle.
+- In side view negative `v` is the back of the body. In front view `v` is
+  lateral, so shapes are wrapped in `pair()` to mirror them.
+- Push `v` slightly past 1 (about 1.15) for anything that should sit flush with
+  the body edge; everything is clipped to the torso silhouette anyway.
+- The string `'shoulder'` instead of polygons puts the region on the deltoid
+  joints, which is what the rear delts use.
+
+A new muscle group needs its regions defined here for **both** views, or those
+exercises will animate with no highlight.
+
+## Framing
+
+Each exercise carries an explicit `viewBox` so its scene sits centred. The
+window size is fixed at `232 236` for every exercise — only the x origin
+changes — which keeps figures at a consistent scale across cards.
+
+To re-measure after changing poses or equipment, render each exercise offscreen,
+sample `setTime` across the loop, union the bounding boxes of everything except
+`.eq-floor` (the ground line is deliberately far wider than any viewBox, so it
+would swamp the measurement), and set the origin to `centreX - 116`.
+
 ## Adding a muscle group
 
 1. Copy `js/data/back.js` to `js/data/<group>.js`. Keep the same exports:
    `group` (with `id`, `name`, `tagline`, `regions`), `exercises`, and `byId`.
+   **`regions` is in priority order, not anatomical order** — the generator
+   fills a session by walking it, so a shortened day drops the tail first.
 2. Add the region keys and their anatomical names to `MUSCLES` in
-   `js/anatomy.js`, and draw their paths in `REGIONS`. The map is a posterior
+   `js/anatomy.js`, and draw their paths in `REGIONS`. That map is a posterior
    view; a front-view map will be needed for chest, arms and quads.
-3. Flip `ready: true` for that group in `REGISTRY` at the top of `js/app.js`.
-4. Add the new data file to `SHELL` in `sw.js` and bump `CACHE`.
+3. Add the same regions to `MUSCLE_SHAPES` in `js/rig.js`, for both views.
+4. Flip `ready: true` for that group in `REGISTRY` at the top of `js/app.js`.
+5. Measure and set each exercise's `viewBox` (see Framing above).
+6. Add the new data file to `SHELL` in `sw.js` and bump `CACHE`.
 
 Nothing else needs touching — the screens, filters and workout generator are all
 data-driven.
 
 Aim for four exercises per target region and a mix of machine, cable, barbell,
 dumbbell and bodyweight. The generator picks one exercise per region, so the
-number of regions is the workout length.
+number of regions sets the maximum session length; the user can shorten it with
+the selector, which trims from the end of the priority list.
 
 ## Icons
 

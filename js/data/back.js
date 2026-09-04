@@ -22,7 +22,10 @@ export const group = {
   id: 'back',
   name: 'Back',
   tagline: 'Width, thickness and a spine that holds up',
-  regions: ['lats', 'rhomboids', 'traps', 'erectors', 'teres', 'rear_delts'],
+  // PRIORITY ORDER, not anatomical order. The generator fills a session by
+  // walking this list, so a shortened day drops teres and traps (which the
+  // big pulls already hit hard) before it drops the lats or the erectors.
+  regions: ['lats', 'rhomboids', 'erectors', 'rear_delts', 'traps', 'teres'],
 };
 
 export const exercises = [
@@ -36,6 +39,8 @@ export const exercises = [
     secondary: ['teres', 'rhomboids'],
     level: 'Beginner',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-136 -214 232 236',
     tempo: 3000,
     setsReps: '3–4 × 8–12',
     howTo: [
@@ -66,6 +71,8 @@ export const exercises = [
     secondary: ['teres', 'rhomboids'],
     level: 'Advanced',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-116 -214 232 236',
     tempo: 3200,
     setsReps: '4 × as many as you can',
     howTo: [
@@ -90,6 +97,8 @@ export const exercises = [
     secondary: ['teres'],
     level: 'Intermediate',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-75 -214 232 236',
     tempo: 2600,
     setsReps: '3 × 12–15',
     howTo: [
@@ -117,6 +126,8 @@ export const exercises = [
     secondary: ['teres'],
     level: 'Intermediate',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-134 -214 232 236',
     tempo: 3200,
     setsReps: '3 × 10–12',
     howTo: [
@@ -146,6 +157,8 @@ export const exercises = [
     secondary: ['lats', 'traps'],
     level: 'Beginner',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-77 -214 232 236',
     tempo: 3000,
     setsReps: '3–4 × 10–12',
     howTo: [
@@ -175,6 +188,8 @@ export const exercises = [
     secondary: ['lats', 'erectors'],
     level: 'Advanced',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-79 -214 232 236',
     tempo: 2800,
     setsReps: '4 × 6–10',
     howTo: [
@@ -199,6 +214,8 @@ export const exercises = [
     secondary: ['lats', 'teres'],
     level: 'Beginner',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-94 -214 232 236',
     tempo: 2800,
     setsReps: '3–4 × 10–12',
     howTo: [
@@ -227,6 +244,8 @@ export const exercises = [
     secondary: ['lats', 'teres'],
     level: 'Beginner',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-90 -214 232 236',
     tempo: 2800,
     setsReps: '3 × 10–12 each side',
     howTo: [
@@ -258,6 +277,8 @@ export const exercises = [
     secondary: ['rhomboids'],
     level: 'Beginner',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-116 -214 232 236',
     tempo: 2400,
     setsReps: '3–4 × 12–15',
     howTo: [
@@ -282,6 +303,8 @@ export const exercises = [
     secondary: ['rhomboids'],
     level: 'Beginner',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-116 -214 232 236',
     tempo: 2400,
     setsReps: '3 × 12–15',
     howTo: [
@@ -306,6 +329,8 @@ export const exercises = [
     secondary: ['rear_delts'],
     level: 'Intermediate',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-139 -214 232 236',
     tempo: 2600,
     setsReps: '3 × 10–12',
     howTo: [
@@ -333,6 +358,8 @@ export const exercises = [
     secondary: ['erectors'],
     level: 'Intermediate',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-116 -214 232 236',
     tempo: 2000,
     setsReps: '3 × 30–40 m',
     howTo: [
@@ -359,6 +386,8 @@ export const exercises = [
     secondary: ['traps', 'lats'],
     level: 'Advanced',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-88 -214 232 236',
     tempo: 3400,
     setsReps: '3–5 × 3–6',
     howTo: [
@@ -383,6 +412,8 @@ export const exercises = [
     secondary: ['rhomboids'],
     level: 'Beginner',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-89 -214 232 236',
     tempo: 3000,
     setsReps: '3 × 12–15',
     howTo: [
@@ -415,6 +446,8 @@ export const exercises = [
     secondary: ['rhomboids'],
     level: 'Advanced',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-91 -214 232 236',
     tempo: 3200,
     setsReps: '3 × 8–10',
     howTo: [
@@ -439,6 +472,8 @@ export const exercises = [
     secondary: ['traps', 'rhomboids'],
     level: 'Intermediate',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-112 -214 232 236',
     tempo: 2800,
     setsReps: '3–4 × 5–8',
     howTo: [
@@ -468,6 +503,8 @@ export const exercises = [
     secondary: ['lats', 'rhomboids'],
     level: 'Beginner',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-140 -214 232 236',
     tempo: 3000,
     setsReps: '3 × 10–12',
     howTo: [
@@ -498,6 +535,8 @@ export const exercises = [
     secondary: ['rhomboids', 'lats'],
     level: 'Advanced',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-118 -214 232 236',
     tempo: 2800,
     setsReps: '3 × 8–10 each side',
     howTo: [
@@ -525,6 +564,8 @@ export const exercises = [
     secondary: ['rear_delts', 'rhomboids'],
     level: 'Beginner',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-77 -214 232 236',
     tempo: 3000,
     setsReps: '3 × 12–15',
     howTo: [
@@ -554,6 +595,8 @@ export const exercises = [
     secondary: ['lats', 'rhomboids'],
     level: 'Beginner',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-94 -214 232 236',
     tempo: 2800,
     setsReps: '3 × 10–12',
     howTo: [
@@ -585,6 +628,8 @@ export const exercises = [
     secondary: ['rhomboids'],
     level: 'Beginner',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-112 -214 232 236',
     tempo: 2600,
     setsReps: '3 × 12–15',
     howTo: [
@@ -614,6 +659,8 @@ export const exercises = [
     secondary: ['traps', 'rhomboids'],
     level: 'Beginner',
     view: 'side',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-77 -214 232 236',
     tempo: 2800,
     setsReps: '3 × 15–20',
     howTo: [
@@ -641,6 +688,8 @@ export const exercises = [
     secondary: ['rhomboids', 'teres'],
     level: 'Beginner',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-112 -214 232 236',
     tempo: 2800,
     setsReps: '3 × 12–15',
     howTo: [
@@ -669,6 +718,8 @@ export const exercises = [
     secondary: ['rhomboids', 'traps'],
     level: 'Intermediate',
     view: 'front',
+    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
+    viewBox: '-116 -214 232 236',
     tempo: 2800,
     setsReps: '3 × 12–15',
     howTo: [

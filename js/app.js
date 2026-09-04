@@ -16,7 +16,9 @@ const REGISTRY = [
 ];
 
 const EQUIPMENT_FILTERS = ['All', 'Machine', 'Cable', 'Barbell', 'Dumbbell', 'Bodyweight'];
-const WORKOUT_SIZE = 6;
+/* Session lengths offered. The default is one exercise per target area, which
+   is the point of the whole thing — fewer means dropping a region. */
+const LENGTHS = [4, 5, 6];
 
 /* ============================================================
    Storage — small, forgiving, never throws in private mode.
@@ -115,17 +117,14 @@ function pick(list, avoid = new Set()) {
   return from[Math.floor(Math.random() * from.length)];
 }
 
-function buildWorkout(mod, filter, keepIds = []) {
+function buildWorkout(mod, filter, len = mod.group.regions.length) {
   const { group, exercises } = mod;
-  const keep = new Set(keepIds);
   const matches = (e) => filter === 'All' || e.equipment === filter;
   const used = new Set();
   const out = [];
 
-  for (const region of group.regions) {
+  for (const region of group.regions.slice(0, len)) {
     const inRegion = exercises.filter((e) => e.target === region);
-    const held = inRegion.find((e) => keep.has(e.id));
-    if (held) { out.push(held.id); used.add(held.id); continue; }
     // Prefer the chosen equipment, but never return a short workout because
     // of it — fall back to the whole region rather than dropping a slot.
     const eligible = inRegion.filter(matches);
@@ -133,8 +132,14 @@ function buildWorkout(mod, filter, keepIds = []) {
     out.push(chosen.id);
     used.add(chosen.id);
   }
-  return out.slice(0, WORKOUT_SIZE);
+  return out;
 }
+
+const lengthFor = (mod) => {
+  const max = mod.group.regions.length;
+  const saved = store.get(`gym.len.${mod.group.id}`, max);
+  return Math.min(Math.max(saved, LENGTHS[0]), max);
+};
 
 const workoutKey = (gid) => `gym.workout.${gid}`;
 const loadWorkout = (gid) => store.get(workoutKey(gid), null);
@@ -274,6 +279,7 @@ async function screenGroup(gid) {
   setBar(group.name, { back: '#/' });
 
   const filter = store.get(`gym.filter.${gid}`, 'All');
+  const len = lengthFor(mod);
   const shown = exercises.filter((e) => filter === 'All' || e.equipment === filter);
 
   root.innerHTML = `
@@ -308,7 +314,14 @@ async function screenGroup(gid) {
       ${shown.length ? '' : `<div class="empty"><div class="e-t">Nothing with that equipment</div><div class="e-s">Try another filter.</div></div>`}
     </div>
     <div class="dock">
-      <button class="btn" data-build="${gid}">${svgIcon('bolt')} Build ${group.name} Day</button>
+      <div class="dock-in">
+        <div class="seg" role="group" aria-label="Exercises per session">
+          <span class="seg-label">Exercises</span>
+          ${LENGTHS.filter((n) => n <= group.regions.length).map((n) => `
+            <button class="seg-btn" data-len="${n}" aria-pressed="${n === len}">${n}</button>`).join('')}
+        </div>
+        <button class="btn" data-build="${gid}">${svgIcon('bolt')} Build ${group.name} Day</button>
+      </div>
     </div>`;
 
   hydrate(mod);
@@ -376,7 +389,10 @@ async function screenWorkout(gid) {
   let w = loadWorkout(gid);
   if (!w) {
     const filter = store.get(`gym.filter.${gid}`, 'All');
-    w = { date: todayKey(), filter, items: buildWorkout(mod, filter).map((id) => ({ id, done: false })) };
+    w = {
+      date: todayKey(), filter,
+      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
+    };
     saveWorkout(gid, w);
   }
 
@@ -475,6 +491,13 @@ document.addEventListener('click', async (ev) => {
 
   if (ev.target.closest('[data-theme-toggle]')) { cycleTheme(); return; }
 
+  const len = ev.target.closest('[data-len]');
+  if (len) {
+    store.set(`gym.len.${parseRoute().group}`, +len.dataset.len);
+    render();
+    return;
+  }
+
   const chip = ev.target.closest('[data-filter]');
   if (chip) {
     const gid = parseRoute().group;
@@ -488,7 +511,10 @@ document.addEventListener('click', async (ev) => {
     const gid = build.dataset.build;
     const mod = await loadGroup(gid);
     const filter = store.get(`gym.filter.${gid}`, 'All');
-    saveWorkout(gid, { date: todayKey(), filter, items: buildWorkout(mod, filter).map((id) => ({ id, done: false })) });
+    saveWorkout(gid, {
+      date: todayKey(), filter,
+      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
+    });
     go(`#/w/${gid}`);
     return;
   }
@@ -523,7 +549,10 @@ document.addEventListener('click', async (ev) => {
     const mod = await loadGroup(gid);
     const cur = loadWorkout(gid);
     const filter = cur?.filter ?? 'All';
-    saveWorkout(gid, { date: todayKey(), filter, items: buildWorkout(mod, filter).map((id) => ({ id, done: false })) });
+    saveWorkout(gid, {
+      date: todayKey(), filter,
+      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
+    });
     releaseFigures();
     await screenWorkout(gid);
     return;

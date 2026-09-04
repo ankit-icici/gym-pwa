@@ -16,7 +16,8 @@
   --accent-2:  #B93C0F;
   --accent-bg: #FCEDE6;
   --body:      #2B2F38;
-  --equip:     #9AA1AE;
+  --equip:     #B4BAC4;
+  --equip-solid: #6E7684;
   --ok:        #1F8A4C;
   --shadow:    0 1px 2px rgba(20, 22, 26, .05), 0 8px 24px -12px rgba(20, 22, 26, .16);
   --shadow-lg: 0 2px 6px rgba(20, 22, 26, .06), 0 24px 48px -20px rgba(20, 22, 26, .28);
@@ -44,7 +45,8 @@
     --accent-2:  #FFA075;
     --accent-bg: #2A1710;
     --body:      #C9D0DA;
-    --equip:     #5D6572;
+    --equip:     #454C58;
+    --equip-solid: #7D8593;
     --ok:        #3DD68C;
     --shadow:    0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px -12px rgba(0, 0, 0, .7);
     --shadow-lg: 0 2px 6px rgba(0, 0, 0, .5), 0 24px 48px -20px rgba(0, 0, 0, .8);
@@ -66,7 +68,8 @@
   --accent-2:  #FFA075;
   --accent-bg: #2A1710;
   --body:      #C9D0DA;
-  --equip:     #5D6572;
+  --equip:     #454C58;
+  --equip-solid: #7D8593;
   --ok:        #3DD68C;
   --shadow:    0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px -12px rgba(0, 0, 0, .7);
   --shadow-lg: 0 2px 6px rgba(0, 0, 0, .5), 0 24px 48px -20px rgba(0, 0, 0, .8);
@@ -128,7 +131,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* ============================================================
    Screens & transitions
    ============================================================ */
-main { padding: 8px 0 124px; }
+main { padding: 8px 0 168px; }
 .screen { animation: rise .34s var(--ease) both; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
@@ -292,7 +295,7 @@ main { padding: 8px 0 124px; }
   border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 14px;
 }
 .ring { width: 46px; height: 46px; flex: none; transform: rotate(-90deg); }
-.ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+.ring circle { fill: none; stroke-width: 5; }  /* cap is set per-element, so 0% shows nothing */
 .ring .trk { stroke: var(--surface-3); }
 .ring .val { stroke: var(--accent); transition: stroke-dasharray .45s var(--ease); }
 .progress-txt { flex: 1; min-width: 0; }
@@ -336,33 +339,57 @@ main { padding: 8px 0 124px; }
 /* Sticky action bar at the bottom of the group screen */
 .dock {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  padding: 12px var(--pad) calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg) 62%, transparent);
+  padding: 26px var(--pad) calc(12px + env(safe-area-inset-bottom));
+  /* Tall enough to cover the length selector as well as the button, so list
+     content does not show through between them. */
+  background: linear-gradient(to top,
+    var(--bg) 0%, var(--bg) 62%,
+    color-mix(in srgb, var(--bg) 86%, transparent) 82%,
+    transparent 100%);
   pointer-events: none;
 }
 .dock > * { max-width: var(--maxw); margin: 0 auto; pointer-events: auto; }
+.dock-in { display: flex; flex-direction: column; gap: 9px; }
+
+.seg { display: flex; align-items: center; gap: 6px; align-self: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 4px 4px 13px; box-shadow: var(--shadow); }
+.seg-label { font-size: 12.5px; font-weight: 560; color: var(--text-3); margin-right: 2px; }
+.seg-btn { width: 32px; height: 32px; border-radius: 50%; font-size: 14px; font-weight: 640;
+  color: var(--text-2); transition: background .16s, color .16s; }
+.seg-btn[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.seg-btn:active { transform: scale(.92); }
 
 /* ============================================================
-   The animated figure and its equipment
+   The animated figure and its equipment.
+   Orange means muscle, and only muscle — the gym kit stays monochrome so
+   the highlighted tissue is the one thing your eye lands on.
    ============================================================ */
-.figure .bone, .figure .bone-spine {
-  fill: none; stroke: var(--body); stroke-width: 9.5;
-  stroke-linecap: round; stroke-linejoin: round;
-}
-.figure .bone-spine { stroke-width: 12.5; }
-.figure .head { fill: var(--body); }
-.figure .bone-far { stroke: color-mix(in srgb, var(--body) 42%, var(--surface-2)); stroke-width: 8.5; }
+.figure .fig-body path, .figure .head { fill: inherit; }
+.figure .fig-far path { fill: inherit; }
+.figure .mus { fill: inherit; }
+.figure .mus-1 { opacity: .92; }
+.figure .mus-2 { opacity: .26; }
 
-.figure .eq-bar   { stroke: var(--equip); stroke-width: 5.5; stroke-linecap: round; }
-.figure .eq-plate { fill: var(--accent); stroke: none; }
+/* Gradient stops. Mixing toward white and black keeps the same light
+   direction working in both themes, where --body flips light/dark. */
+.figure .g-body-hi { stop-color: color-mix(in srgb, var(--body) 84%, #fff); }
+.figure .g-body-lo { stop-color: color-mix(in srgb, var(--body) 74%, #000); }
+.figure .g-far-hi  { stop-color: color-mix(in srgb, var(--body) 40%, var(--surface-2)); }
+.figure .g-far-lo  { stop-color: color-mix(in srgb, var(--body) 26%, var(--surface-2)); }
+.figure .g-mus-hi  { stop-color: color-mix(in srgb, var(--accent) 88%, #fff); }
+.figure .g-mus-lo  { stop-color: color-mix(in srgb, var(--accent) 82%, #000); }
+
+.figure .eq-bar   { stroke: var(--equip-solid); stroke-width: 6; stroke-linecap: round; }
+.figure .eq-plate { fill: var(--equip-solid); stroke: none; }
 .figure .eq-hub   { fill: var(--surface-2); }
-.figure .eq-frame { stroke: var(--equip); stroke-width: 3.4; stroke-linecap: round; opacity: .8; }
-.figure .eq-pad   { fill: var(--equip); opacity: .55; }
-.figure .eq-stack { fill: var(--equip); opacity: .32; }
-.figure .eq-stack-line { stroke: var(--surface-2); stroke-width: 2; }
-.figure .eq-pulley { fill: none; stroke: var(--equip); stroke-width: 3; }
-.figure .eq-cable { fill: none; stroke: var(--equip); stroke-width: 2.2; stroke-linejoin: round; }
-.figure .eq-floor { stroke: var(--equip); stroke-width: 2; stroke-dasharray: 3 7; stroke-linecap: round; opacity: .55; }
+.figure .eq-frame { stroke: var(--equip); stroke-width: 4; stroke-linecap: round; }
+.figure .eq-pad   { fill: var(--equip); opacity: .8; }
+.figure .eq-stack { fill: var(--equip); opacity: .45; }
+.figure .eq-stack-line { stroke: var(--surface-2); stroke-width: 2.4; }
+.figure .eq-pulley { fill: none; stroke: var(--equip); stroke-width: 3.4; }
+.figure .eq-cable { fill: none; stroke: var(--equip-solid); stroke-width: 2.6; stroke-linejoin: round; }
+.figure .eq-floor { stroke: var(--equip); stroke-width: 2; stroke-dasharray: 3 7; stroke-linecap: round; opacity: .6; }
 
 /* ============================================================
    Anatomy map
