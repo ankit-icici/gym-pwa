@@ -53,9 +53,9 @@ export const SCENES = {
   'bent-over-barbell-row': scene3d([barbell3d({ len: 152, plateR: 23 })]),
 
   't-bar-row': scene3d([
-    padUpright3d({ y: 90, z: 48, w: 52, h: 70, d: 16, tilt: -34 }),
+    padUpright3d({ y: 84, z: 58, w: 44, h: 58, d: 13, tilt: -34 }),
     frame3d([
-      [[0, 58, 48], [0, 4, 48]],          // pad support
+      [[0, 56, 58], [0, 4, 58]],          // pad support
       [[0, 4, 20], [0, 4, 78]],           // floor rail
       [[0, 4, -46], [0, 32, 26]],         // landmine sleeve
     ]),
