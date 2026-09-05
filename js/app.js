@@ -73,56 +73,8 @@ const ICON = {
   spark: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/>',
   add: '<path d="M12 5v14M5 12h14"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
-  share: '<path d="M12 3v13M12 3L8 7M12 3l4 4"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/>',
 };
 const svgIcon = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
-
-/* ============================================================
-   Sharing the app.
-   Always shares the app's own link, never the current screen — the point is
-   to hand someone the whole app, and a deep link would drop them mid-way
-   through a stranger's workout. Uses the OS share sheet where there is one
-   and falls back to copying the link (most desktop browsers).
-   ============================================================ */
-let toastTimer = null;
-function toast(msg) {
-  let el = document.getElementById('toast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'toast';
-    el.className = 'toast';
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  requestAnimationFrame(() => el.classList.add('is-up'));
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('is-up'), 2400);
-}
-
-/** The app's own address: no route hash, and no trailing index.html. */
-const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, '');
-
-async function shareApp() {
-  const url = appUrl();
-  const data = {
-    title: 'The Forge',
-    text: 'The Forge — a gym app with real demonstrations for every exercise, '
-        + 'and one tap builds your day. Free, works offline, installs to your home screen.',
-    url,
-  };
-  try {
-    if (navigator.share) { await navigator.share(data); return; }
-  } catch (err) {
-    // Cancelling the OS share sheet is not a failure; say nothing.
-    if (err?.name === 'AbortError') return;
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-    toast('Link copied — paste it to a friend');
-  } catch {
-    toast(url);
-  }
-}
 
 /* ============================================================
    The demonstration player.
@@ -316,9 +268,6 @@ function setBar(title, { back = null } = {}) {
         ? `<button class="icon-btn" data-go="${back}" aria-label="Go back">${svgIcon('back')}</button>`
         : `<span style="width:6px"></span>`}
       <h1 class="bar-title">${title}</h1>
-      <button class="icon-btn" data-share aria-label="Share The Forge">
-        ${svgIcon('share')}
-      </button>
       <button class="icon-btn" data-theme-toggle aria-label="Theme: ${theme}. Tap to change.">
         ${svgIcon(theme === 'auto' ? 'auto' : theme === 'dark' ? 'moon' : 'sun')}
       </button>
@@ -382,16 +331,6 @@ function screenHome() {
       </div>
 
       <div id="install-slot"></div>
-
-      <div class="section-head"><h2>Share</h2></div>
-      <button class="card" data-share>
-        <span class="thumb" style="display:grid;place-items:center">${svgIcon('share', 'anat-mini')}</span>
-        <span class="card-body">
-          <span class="card-name">Send The Forge to a friend</span>
-          <span class="card-sub">Shares the app link. It is free and works on any phone.</span>
-        </span>
-        <span class="card-go">${svgIcon('chevron')}</span>
-      </button>
     </div>`;
 
   root.querySelectorAll('.tile.is-live').forEach((tile, i) => {
@@ -622,8 +561,6 @@ function renderInstallHint() {
 document.addEventListener('click', async (ev) => {
   const nav = ev.target.closest('[data-go]');
   if (nav) { go(nav.dataset.go); return; }
-
-  if (ev.target.closest('[data-share]')) { shareApp(); return; }
 
   if (ev.target.closest('[data-theme-toggle]')) { cycleTheme(); return; }
 
