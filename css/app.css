@@ -16,7 +16,6 @@
   --accent-2:  #B93C0F;
   --accent-bg: #FCEDE6;
   --body:      #2B2F38;
-  --fig-body:  #8B93A0;
   --equip:     #B4BAC4;
   --equip-solid: #6E7684;
   --ok:        #1F8A4C;
@@ -46,7 +45,6 @@
     --accent-2:  #FFA075;
     --accent-bg: #2A1710;
     --body:      #C9D0DA;
-    --fig-body:  #AEB6C2;
     --equip:     #454C58;
     --equip-solid: #7D8593;
     --ok:        #3DD68C;
@@ -70,7 +68,6 @@
   --accent-2:  #FFA075;
   --accent-bg: #2A1710;
   --body:      #C9D0DA;
-  --fig-body:  #AEB6C2;
   --equip:     #454C58;
   --equip-solid: #7D8593;
   --ok:        #3DD68C;
@@ -209,7 +206,7 @@ main { padding: 8px 0 168px; }
   flex: none; width: 104px; height: 104px; border-radius: 15px;
   background: var(--surface-2); overflow: hidden; position: relative;
 }
-.thumb .figure { width: 100%; height: 100%; display: block; }
+.thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* Chips that label the target muscle and the kit you need */
 .tag {
@@ -247,34 +244,8 @@ main { padding: 8px 0 168px; }
   display: grid; gap: 8px; grid-template-columns: 1fr;
 }
 @media (min-width: 620px) { .stage { grid-template-columns: 1.35fr .95fr; } }
-.stage-fig { background: var(--surface-2); border-radius: var(--r-lg); aspect-ratio: 1 / 1;
-  position: relative; overflow: hidden; touch-action: none; }
-.stage-fig .figure { width: 100%; height: 100%; display: block; }
-.stage-fig canvas { display: block; }
-
-/* Tells you the model is draggable, then gets out of the way. */
-.stage-hint {
-  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
-  z-index: 2; pointer-events: none;
-  font-size: 12px; font-weight: 560; letter-spacing: .01em;
-  color: var(--text-2); background: color-mix(in srgb, var(--surface) 78%, transparent);
-  backdrop-filter: blur(6px); border: 1px solid var(--line);
-  padding: 5px 11px; border-radius: 999px;
-  transition: opacity .5s var(--ease);
-}
-.stage-hint.is-gone { opacity: 0; }
-
-/* Camera presets */
-.cams { display: flex; gap: 7px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
-.cams::-webkit-scrollbar { display: none; }
-.cam {
-  flex: none; height: 34px; padding: 0 14px; border-radius: 999px;
-  font-size: 13.5px; font-weight: 560; white-space: nowrap;
-  background: var(--surface); color: var(--text-2); border: 1px solid var(--line);
-  transition: all .16s var(--ease);
-}
-.cam[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
-.cam:active { transform: scale(.95); }
+.stage-fig { background: var(--surface-2); border-radius: var(--r-lg); position: relative; overflow: hidden; }
+.stage-fig.photo { aspect-ratio: 3 / 2; cursor: pointer; }
 .stage-anat {
   background: var(--surface-2); border-radius: var(--r-lg); padding: 14px;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
@@ -283,12 +254,24 @@ main { padding: 8px 0 168px; }
 .anat-label { text-align: center; }
 .anat-label .n { font-size: 15px; font-weight: 640; letter-spacing: -.01em; color: var(--accent); }
 .anat-label .b { font-size: 12.5px; color: var(--text-3); margin-top: 3px; line-height: 1.42; }
+.demo-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .55s var(--ease);
+}
+.demo-img.is-active { opacity: 1; }
+.pose-label {
+  position: absolute; left: 12px; top: 12px; z-index: 2; pointer-events: none;
+  font-size: 12px; font-weight: 640; letter-spacing: .04em; text-transform: uppercase;
+  color: #fff; background: rgba(10, 11, 13, .55);
+  backdrop-filter: blur(6px);
+  padding: 4px 10px; border-radius: 999px;
+}
 
 .play-toggle {
-  position: absolute; right: 10px; bottom: 10px; width: 38px; height: 38px;
+  position: absolute; right: 10px; bottom: 10px; z-index: 2; width: 38px; height: 38px;
   border-radius: 50%; display: grid; place-items: center;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(8px); border: 1px solid var(--line); color: var(--text-2);
+  background: rgba(10, 11, 13, .55); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, .18); color: #fff;
 }
 .play-toggle svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
 
@@ -388,37 +371,6 @@ main { padding: 8px 0 168px; }
   color: var(--text-2); transition: background .16s, color .16s; }
 .seg-btn[aria-pressed="true"] { background: var(--text); color: var(--bg); }
 .seg-btn:active { transform: scale(.92); }
-
-/* ============================================================
-   The animated figure and its equipment.
-   Orange means muscle, and only muscle — the gym kit stays monochrome so
-   the highlighted tissue is the one thing your eye lands on.
-   ============================================================ */
-.figure .fig-body path, .figure .head { fill: inherit; }
-.figure .fig-far path { fill: inherit; }
-.figure .mus { fill: inherit; }
-.figure .mus-1 { opacity: .92; }
-.figure .mus-2 { opacity: .26; }
-
-/* Gradient stops. Mixing toward white and black keeps the same light
-   direction working in both themes, where --body flips light/dark. */
-.figure .g-body-hi { stop-color: color-mix(in srgb, var(--body) 84%, #fff); }
-.figure .g-body-lo { stop-color: color-mix(in srgb, var(--body) 74%, #000); }
-.figure .g-far-hi  { stop-color: color-mix(in srgb, var(--body) 40%, var(--surface-2)); }
-.figure .g-far-lo  { stop-color: color-mix(in srgb, var(--body) 26%, var(--surface-2)); }
-.figure .g-mus-hi  { stop-color: color-mix(in srgb, var(--accent) 88%, #fff); }
-.figure .g-mus-lo  { stop-color: color-mix(in srgb, var(--accent) 82%, #000); }
-
-.figure .eq-bar   { stroke: var(--equip-solid); stroke-width: 6; stroke-linecap: round; }
-.figure .eq-plate { fill: var(--equip-solid); stroke: none; }
-.figure .eq-hub   { fill: var(--surface-2); }
-.figure .eq-frame { stroke: var(--equip); stroke-width: 4; stroke-linecap: round; }
-.figure .eq-pad   { fill: var(--equip); opacity: .8; }
-.figure .eq-stack { fill: var(--equip); opacity: .45; }
-.figure .eq-stack-line { stroke: var(--surface-2); stroke-width: 2.4; }
-.figure .eq-pulley { fill: none; stroke: var(--equip); stroke-width: 3.4; }
-.figure .eq-cable { fill: none; stroke: var(--equip-solid); stroke-width: 2.6; stroke-linejoin: round; }
-.figure .eq-floor { stroke: var(--equip); stroke-width: 2; stroke-dasharray: 3 7; stroke-linecap: round; opacity: .6; }
 
 /* ============================================================
    Anatomy map

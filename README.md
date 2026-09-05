@@ -4,24 +4,21 @@ An installable PWA that lists gym exercises by muscle group, animates every
 movement, names the muscle each one trains, and builds a six-exercise day for a
 muscle group in one tap.
 
-Currently shipping the **Back** group: 24 exercises across 6 target areas.
+Currently shipping the **Back** group: 24 exercises across 6 target areas,
+each demonstrated with real photography.
 
 ## What it does
 
 - **Browse by muscle.** Exercises are grouped under the muscle they actually
   train — Latissimus Dorsi, Rhomboids & Mid-Traps, Trapezius, Erector Spinae,
   Teres, Posterior Deltoid — and filterable by equipment.
-- **3D demonstrations you can rotate.** Open any exercise and the movement plays
-  on an articulated 3D figure with the gym equipment around it. Drag to orbit,
-  or jump to a preset angle — 3/4, side, back, front, top — so you can check
-  form from wherever it is actually visible. Cards and workout rows keep fast
-  2D SVG animations, since browsers cap how many live 3D scenes can exist.
-- **The muscle lights up on the body.** The trained muscle is painted onto the
-  moving figure and brightens toward peak contraction, so the animation tells
-  you what it works rather than just how it looks. Orange means muscle and
-  nothing else — the equipment stays monochrome.
-- **Anatomy map.** The detail screen also shows a posterior-view body with the
-  primary muscle named and its secondary muscles shaded.
+- **Real demonstrations.** Every exercise is shown by a real lifter — the
+  starting position and the peak of the rep, cross-faded on a loop. Tap the
+  photo to step between positions and study them. Photography is from the
+  public-domain [free-exercise-db](https://github.com/yuhonas/free-exercise-db).
+- **Anatomy map.** Each exercise highlights the muscle it trains on a body map,
+  named the way trainers say it — lats, upper back, traps, lower back, upper
+  lats, rear delts — plus what it also works.
 - **Build a day.** One tap picks one exercise per target area, so a generated
   session always covers the whole muscle group. Choose 4, 5 or 6 exercises;
   shorter sessions trim the lowest-priority areas. Tick them off, swap any slot
@@ -52,23 +49,15 @@ so a deploy reaches installed devices on their next launch.
 ## Layout
 
 ```
-index.html              app shell
-vendor/three.module.min.js  three.js r168 (MIT), vendored so the app works offline
-manifest.webmanifest    PWA manifest
-sw.js                   service worker (offline shell)
-css/app.css             design tokens + all styling
-js/app.js               router, screens, workout generator, theme
-js/rig.js               skeletal figure engine (poses -> SVG)
-js/equipment.js         composable gym equipment parts
-js/anatomy.js           posterior-view muscle map
-js/data/back.js         the Back muscle group
-js/data/back3d.js       3D equipment scenes for it (imports three.js)
-js/three/figure.js      3D articulated mannequin + muscle patches
-js/three/kit3d.js       composable 3D gym equipment
-js/three/viewer.js      3D scene, camera, orbit, auto-framing
-tools-make-icons.mjs    regenerates the PNG icons from source
-debug.html              dev-only pose contact sheet (2D)
-debug3d.html            dev-only 3D bench, ?id=<exercise-id>
+index.html            app shell
+manifest.webmanifest  PWA manifest
+sw.js                 service worker (offline shell, photos included)
+css/app.css           design tokens + all styling
+js/app.js             router, screens, demo player, workout generator, theme
+js/anatomy.js         posterior-view muscle map + gym-name registry
+js/data/back.js       the Back muscle group
+img/demo/             demonstration photos (public domain, free-exercise-db)
+tools-make-icons.mjs  regenerates the PNG icons from source
 ```
 
 See `CLAUDE.md` for the pose angle convention and how to add a muscle group.

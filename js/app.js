@@ -1,29 +1,9 @@
-import { createFigure, createClock } from './rig.js';
 import { createAnatomy, MUSCLES } from './anatomy.js';
-
-/* three.js is ~685 KB, so it is only ever fetched when a detail screen opens.
-   Browse and workout screens stay on the lightweight SVG figures. */
-let threeMods = null;
-async function loadThree(groupId) {
-  if (threeMods) return threeMods;
-  const [viewer, scenes] = await Promise.all([
-    import('./three/viewer.js'),
-    import(`./data/${groupId}3d.js`),
-  ]);
-  threeMods = { viewer, scenes };
-  return threeMods;
-}
-const webglOK = (() => {
-  try {
-    const c = document.createElement('canvas');
-    return !!(c.getContext('webgl2') || c.getContext('webgl'));
-  } catch { return false; }
-})();
 
 /* ============================================================
    Muscle-group registry.
-   To add a group: write js/data/<id>.js in the shape of back.js and
-   flip `ready` to true here. Nothing else in the app needs to change.
+   To add a group: write js/data/<id>.js in the shape of back.js, drop its
+   demonstration photos in img/demo/, and flip `ready` here.
    ============================================================ */
 const REGISTRY = [
   { id: 'back',      name: 'Back',      ready: true,  load: () => import('./data/back.js') },
@@ -35,8 +15,8 @@ const REGISTRY = [
 ];
 
 const EQUIPMENT_FILTERS = ['All', 'Machine', 'Cable', 'Barbell', 'Dumbbell', 'Bodyweight'];
-/* Session lengths offered. The default is one exercise per target area, which
-   is the point of the whole thing — fewer means dropping a region. */
+/* Session lengths offered. The default is one exercise per target area —
+   fewer means dropping a region, in priority order. */
 const LENGTHS = [4, 5, 6];
 
 /* ============================================================
@@ -88,7 +68,7 @@ const ICON = {
   swap: '<path d="M17 2l4 4-4 4"/><path d="M3 6h18"/><path d="M7 22l-4-4 4-4"/><path d="M21 18H3"/>',
   check: '<path d="M20 6L9 17l-5-5"/>',
   play: '<path d="M8 5v14l11-7z"/>',
-  pause: '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>',
+  pause: '<path d="M6 4h4v16H6zM14 4h4v20h-4z"/>',
   spark: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/>',
   add: '<path d="M12 5v14M5 12h14"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
@@ -96,39 +76,58 @@ const ICON = {
 const svgIcon = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
 
 /* ============================================================
-   Animation scheduling.
-   One rAF loop for the whole app, and figures only run while they
-   are actually on screen — otherwise a 24-card list burns battery.
+   The demonstration player.
+   Two photographs of a real lifter — starting position and peak — cross-faded
+   on a loop. One active player at a time; released on every route change.
    ============================================================ */
-const clock = createClock();
-const mounted = new Map();
-const io = new IntersectionObserver((entries) => {
-  for (const e of entries) {
-    const rec = mounted.get(e.target);
-    if (!rec) continue;
-    if (e.isIntersecting && !rec.stop) rec.stop = clock.add(rec.setTime, rec.period);
-    else if (!e.isIntersecting && rec.stop) { rec.stop(); rec.stop = null; }
-  }
-}, { rootMargin: '160px 0px' });
+let player = null;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-let active3d = null;
-
-function releaseFigures() {
-  for (const [node, rec] of mounted) { rec.stop?.(); io.unobserve(node); }
-  mounted.clear();
-  active3d?.stop?.();
-  active3d?.view?.dispose();
-  active3d = null;
+function releaseMedia() {
+  if (player) { clearInterval(player.timer); player = null; }
 }
 
-function mountFigure(host, exercise, speed = 1) {
-  const { svg, setTime } = createFigure(exercise);
-  host.appendChild(svg);
-  const rec = { setTime, period: (exercise.tempo || 2800) / speed, stop: null };
-  mounted.set(host, rec);
-  io.observe(host);
-  return rec;
+function mountPlayer(box, e, demo) {
+  const imgs = box.querySelectorAll('.demo-img');
+  const label = box.querySelector('.pose-label');
+  const btn = box.querySelector('[data-play]');
+  let frame = 0;
+  let playing = !reducedMotion.matches;
+
+  const show = (f) => {
+    frame = f;
+    imgs[0].classList.toggle('is-active', f === 0);
+    imgs[1].classList.toggle('is-active', f === 1);
+    if (label) label.textContent = f === 0 ? 'Start' : 'Peak';
+  };
+  const tick = () => show(frame === 0 ? 1 : 0);
+
+  const start = () => {
+    clearInterval(player.timer);
+    player.timer = setInterval(tick, 1500);
+  };
+  player = { timer: 0 };
+  if (playing) start(); else show(1);
+
+  btn?.addEventListener('click', () => {
+    playing = !playing;
+    btn.innerHTML = svgIcon(playing ? 'pause' : 'play');
+    btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    if (playing) start(); else clearInterval(player.timer);
+  });
+  // Tapping the photo steps between positions and pauses for study.
+  imgs.forEach((im) => im.addEventListener('click', () => {
+    playing = false;
+    clearInterval(player.timer);
+    if (btn) { btn.innerHTML = svgIcon('play'); btn.setAttribute('aria-label', 'Play'); }
+    tick();
+  }));
 }
+
+const demoMarkup = (demo, e, { label = true } = {}) => `
+  <img class="demo-img is-active" src="${demo(e.id, 0)}" alt="${e.name}, starting position" decoding="async">
+  <img class="demo-img" src="${demo(e.id, 1)}" alt="${e.name}, peak position" decoding="async">
+  ${label ? '<div class="pose-label">Start</div>' : ''}`;
 
 /* ============================================================
    Workout generation.
@@ -166,8 +165,19 @@ const lengthFor = (mod) => {
 };
 
 const workoutKey = (gid) => `gym.workout.${gid}`;
-const loadWorkout = (gid) => store.get(workoutKey(gid), null);
 const saveWorkout = (gid, w) => store.set(workoutKey(gid), w);
+
+/** Saved workouts can reference exercises that no longer exist after an
+    update; silently drop those instead of crashing on them. */
+function loadWorkout(gid, byId = null) {
+  const w = store.get(workoutKey(gid), null);
+  if (!w) return null;
+  if (byId) {
+    w.items = w.items.filter((it) => byId[it.id]);
+    if (!w.items.length) return null;
+  }
+  return w;
+}
 
 /* ============================================================
    Router
@@ -212,6 +222,17 @@ function setBar(title, { back = null } = {}) {
 /* ============================================================
    Screens
    ============================================================ */
+function ringSvg(frac, size = 46) {
+  const r = size / 2 - 3.5;
+  const c = 2 * Math.PI * r;
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
+    <circle class="trk" cx="${size / 2}" cy="${size / 2}" r="${r}"/>
+    <circle class="val" cx="${size / 2}" cy="${size / 2}" r="${r}"
+      stroke-linecap="${frac > 0 ? 'round' : 'butt'}"
+      stroke-dasharray="${(c * frac).toFixed(1)} ${c.toFixed(1)}"/>
+  </svg>`;
+}
+
 function screenHome() {
   setBar('Gym');
   const saved = REGISTRY.filter((g) => g.ready)
@@ -222,8 +243,8 @@ function screenHome() {
     <div class="screen wrap">
       <header class="hero">
         <div class="eyebrow">Train with intent</div>
-        <h1>Pick a muscle group.<br>Get six exercises.</h1>
-        <p>Every movement is animated, and every exercise tells you exactly which muscle it hits.</p>
+        <h1>Pick a muscle group.<br>Get your day's exercises.</h1>
+        <p>Real demonstrations for every movement, and every exercise tells you exactly which muscle it hits.</p>
       </header>
 
       ${saved.length ? `
@@ -257,8 +278,6 @@ function screenHome() {
       <div id="install-slot"></div>
     </div>`;
 
-  // Drop a live anatomy thumbnail into the Back tile so the home screen
-  // shows what the app is actually about.
   const backTile = root.querySelector('.tile.is-live');
   if (backTile) {
     const art = document.createElement('div');
@@ -269,24 +288,13 @@ function screenHome() {
   renderInstallHint();
 }
 
-function ringSvg(frac, size = 46) {
-  const r = size / 2 - 3.5;
-  const c = 2 * Math.PI * r;
-  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
-    <circle class="trk" cx="${size / 2}" cy="${size / 2}" r="${r}"/>
-    <circle class="val" cx="${size / 2}" cy="${size / 2}" r="${r}"
-      stroke-linecap="${frac > 0 ? 'round' : 'butt'}"
-      stroke-dasharray="${(c * frac).toFixed(1)} ${c.toFixed(1)}"/>
-  </svg>`;
-}
-
 const cardTag = (e) => `
   <span class="tag tag-muscle"><i class="tag-dot"></i>${MUSCLES[e.target]?.short ?? e.target}</span>
   <span class="tag">${e.equipment}</span>`;
 
-function exerciseCard(gid, e) {
+function exerciseCard(gid, e, demo) {
   return `<button class="card" data-go="#/g/${gid}/e/${e.id}">
-    <span class="thumb" data-fig="${e.id}"></span>
+    <span class="thumb"><img class="thumb-img" src="${demo(e.id, 1)}" alt="" loading="lazy" decoding="async"></span>
     <span class="card-body">
       <span class="card-name">${e.name}</span>
       <span class="card-meta">${cardTag(e)}</span>
@@ -299,7 +307,7 @@ function exerciseCard(gid, e) {
 async function screenGroup(gid) {
   const mod = await loadGroup(gid);
   if (!mod) return screenHome();
-  const { group, exercises } = mod;
+  const { group, exercises, demo } = mod;
   setBar(group.name, { back: '#/' });
 
   const filter = store.get(`gym.filter.${gid}`, 'All');
@@ -331,7 +339,7 @@ async function screenGroup(gid) {
               </h2>
               <span class="count">${list.length}</span>
             </div>
-            <div class="grid">${list.map((e) => exerciseCard(gid, e)).join('')}</div>`;
+            <div class="grid">${list.map((e) => exerciseCard(gid, e, demo)).join('')}</div>`;
         }).join('')}
       </div>
 
@@ -348,22 +356,23 @@ async function screenGroup(gid) {
       </div>
     </div>`;
 
-  hydrate(mod);
+  hydrateAnatomy(mod);
 }
 
 async function screenDetail(gid, eid) {
   const mod = await loadGroup(gid);
   const e = mod?.byId[eid];
   if (!e) return screenGroup(gid);
+  const { demo } = mod;
   setBar(e.name, { back: `#/g/${gid}` });
   const m = MUSCLES[e.target];
 
   root.innerHTML = `
     <div class="screen wrap">
       <div class="stage">
-        <div class="stage-fig" id="stage3d">
-          <div class="stage-hint" id="hint">Drag to rotate</div>
-          <button class="play-toggle" data-play aria-label="Pause animation">${svgIcon('pause')}</button>
+        <div class="stage-fig photo" id="demo-box">
+          ${demoMarkup(demo, e)}
+          <button class="play-toggle" data-play aria-label="Pause">${svgIcon(reducedMotion.matches ? 'play' : 'pause')}</button>
         </div>
         <div class="stage-anat">
           <span data-anat-big="${e.target}"></span>
@@ -373,8 +382,6 @@ async function screenDetail(gid, eid) {
           </div>
         </div>
       </div>
-
-      <div class="cams" id="cams" hidden></div>
 
       <dl class="facts">
         <div class="fact"><dt>Equipment</dt><dd>${e.gear}</dd></div>
@@ -386,85 +393,72 @@ async function screenDetail(gid, eid) {
         <div class="section-head"><h2>Also works</h2></div>
         <div class="card-meta">${e.secondary.map((sx) => `<span class="tag">${MUSCLES[sx]?.name ?? sx}</span>`).join('')}</div>` : ''}
 
-      <div class="section-head"><h2>How to do it</h2></div>
-      <div class="steps">${e.howTo.map((t) => `<div class="step"><p>${t}</p></div>`).join('')}</div>
-
       <div class="section-head"><h2>Form cues</h2></div>
       <div class="cues">${e.cues.map((c) => `<div class="cue">${svgIcon('spark')}<span>${c}</span></div>`).join('')}</div>
     </div>`;
 
-  hydrate(mod);
-
-  const box = document.getElementById('stage3d');
-  const btn = root.querySelector('[data-play]');
-  const period = (e.tempo || 2800) * 1.25;   // a touch slower in 3D, to study
-  let playing = true;
-
-  // Fall back to the flat figure if WebGL is missing or three.js fails to load;
-  // an exercise with no demonstration at all would be worse than a 2D one.
-  const useSvg = () => {
-    box.querySelector('.stage-hint')?.remove();
-    const { svg, setTime } = createFigure(e);
-    box.insertBefore(svg, box.firstChild);
-    const rec = { setTime, period, stop: null };
-    mounted.set(box, rec);
-    io.observe(box);
-  };
-
-  if (!webglOK) { useSvg(); }
-  else {
-    try {
-      const { viewer, scenes } = await loadThree(gid);
-      if (parseRoute().exercise !== eid) return;   // navigated away mid-load
-      const view = viewer.createViewer(box, e, { scene3d: scenes.SCENES[e.id] });
-      const stop = clock.add(view.setTime, period);
-      active3d = { view, stop };
-
-      const cams = document.getElementById('cams');
-      cams.hidden = false;
-      cams.innerHTML = viewer.ANGLE_ORDER
-        .map((k) => `<button class="cam" data-cam="${k}">${viewer.ANGLE_LABEL[k]}</button>`)
-        .join('');
-      cams.addEventListener('click', (ev) => {
-        const b = ev.target.closest('[data-cam]');
-        if (!b) return;
-        view.setAngle(b.dataset.cam);
-        for (const x of cams.children) x.setAttribute('aria-pressed', x === b);
-      });
-      cams.firstElementChild?.setAttribute('aria-pressed', 'true');
-
-      // The hint has done its job the moment they touch the model.
-      const hint = document.getElementById('hint');
-      box.addEventListener('pointerdown', () => hint?.classList.add('is-gone'), { once: true });
-      setTimeout(() => hint?.classList.add('is-gone'), 4200);
-    } catch {
-      active3d = null;
-      useSvg();
-    }
-  }
-
-  btn.addEventListener('click', () => {
-    playing = !playing;
-    btn.innerHTML = svgIcon(playing ? 'pause' : 'play');
-    btn.setAttribute('aria-label', playing ? 'Pause animation' : 'Play animation');
-    if (active3d) {
-      if (playing) active3d.stop = clock.add(active3d.view.setTime, period);
-      else { active3d.stop?.(); active3d.stop = null; }
-      return;
-    }
-    const rec = mounted.get(box);
-    if (!rec) return;
-    if (playing) rec.stop = clock.add(rec.setTime, period);
-    else { rec.stop?.(); rec.stop = null; io.unobserve(box); }
-  });
+  hydrateAnatomy(mod);
+  mountPlayer(document.getElementById('demo-box'), e, demo);
 }
 
-/* Attach every animated figure and anatomy map the markup asked for. */
-function hydrate(mod) {
-  for (const host of root.querySelectorAll('[data-fig]')) {
-    const e = mod.byId[host.dataset.fig];
-    if (e) mountFigure(host, e);
+async function screenWorkout(gid) {
+  const mod = await loadGroup(gid);
+  if (!mod) return screenHome();
+  const { group, byId, demo } = mod;
+  setBar(`${group.name} Day`, { back: `#/g/${gid}` });
+
+  let w = loadWorkout(gid, byId);
+  if (!w) {
+    const filter = store.get(`gym.filter.${gid}`, 'All');
+    w = {
+      date: todayKey(), filter,
+      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
+    };
+    saveWorkout(gid, w);
   }
+
+  const done = w.items.filter((i) => i.done).length;
+  const total = w.items.length;
+
+  root.innerHTML = `
+    <div class="screen wrap">
+      <div class="progress">
+        ${ringSvg(total ? done / total : 0)}
+        <div class="progress-txt">
+          <div class="t">${done === total ? 'Session complete. Well done.' : `${done} of ${total} finished`}</div>
+          <div class="s">One exercise per target area${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
+        </div>
+      </div>
+
+      <div class="stack">
+        ${w.items.map((it, i) => {
+          const e = byId[it.id];
+          return `<div class="slot ${it.done ? 'is-done' : ''}">
+            <button class="slot-open" data-go="#/g/${gid}/e/${e.id}">
+              <span class="thumb"><img class="thumb-img" src="${demo(e.id, 1)}" alt="" loading="lazy" decoding="async"></span>
+              <span class="slot-body">
+                <span class="slot-name">${e.name}</span>
+                <span class="slot-meta">
+                  <span class="tag tag-muscle"><i class="tag-dot"></i>${MUSCLES[e.target].short}</span>
+                  <span class="slot-reps">${e.setsReps}</span>
+                </span>
+              </span>
+            </button>
+            <button class="slot-swap" data-swap="${i}" aria-label="Swap ${e.name} for another ${MUSCLES[e.target].short} exercise">${svgIcon('swap')}</button>
+            <button class="tick" data-tick="${i}" aria-pressed="${it.done}" aria-label="Mark ${e.name} ${it.done ? 'not done' : 'done'}">${svgIcon('check')}</button>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-ghost" data-regen="${gid}">${svgIcon('shuffle')} Rebuild</button>
+        <button class="btn btn-ghost" data-clear="${gid}">${svgIcon('trash')} Clear</button>
+      </div>
+    </div>`;
+}
+
+/* Attach the anatomy maps the markup asked for. */
+function hydrateAnatomy(mod) {
   for (const host of root.querySelectorAll('[data-anat]')) {
     host.appendChild(createAnatomy(host.dataset.anat));
   }
@@ -545,7 +539,7 @@ document.addEventListener('click', async (ev) => {
   if (tick || swap) {
     const gid = parseRoute().group;
     const mod = await loadGroup(gid);
-    const w = loadWorkout(gid);
+    const w = loadWorkout(gid, mod?.byId);
     if (!mod || !w) return;
     if (tick) {
       const i = +tick.dataset.tick;
@@ -559,7 +553,7 @@ document.addEventListener('click', async (ev) => {
       w.items[i] = { id: next.id, done: false };
     }
     saveWorkout(gid, w);
-    releaseFigures();
+    releaseMedia();
     await screenWorkout(gid);
     return;
   }
@@ -574,7 +568,7 @@ document.addEventListener('click', async (ev) => {
       date: todayKey(), filter,
       items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
     });
-    releaseFigures();
+    releaseMedia();
     await screenWorkout(gid);
     return;
   }
@@ -607,7 +601,7 @@ addEventListener('scroll', () => {
    Boot
    ============================================================ */
 async function render() {
-  releaseFigures();
+  releaseMedia();
   const r = parseRoute();
   if (r.name === 'group') await screenGroup(r.group);
   else if (r.name === 'detail') await screenDetail(r.group, r.exercise);

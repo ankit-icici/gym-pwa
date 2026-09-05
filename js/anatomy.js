@@ -38,13 +38,14 @@ const OUTLINE =
   'C139,151 133,171 129,197 L127,216 L73,216 L71,197 ' +
   'C67,171 61,151 55,119 C49,105 36,92 43,74 C52,57 72,47 100,46 Z';
 
+/* Gym-floor names, the way a trainer says them — not textbook Latin. */
 export const MUSCLES = {
-  lats:       { name: 'Latissimus Dorsi', short: 'Lats',        blurb: 'The big V-taper muscle. Pulls the arm down and back.' },
-  rhomboids:  { name: 'Rhomboids & Mid-Traps', short: 'Mid-Back', blurb: 'Between the shoulder blades. Squeezes them together.' },
-  traps:      { name: 'Trapezius', short: 'Traps',              blurb: 'Neck to mid-back. Shrugs and stabilises the shoulder.' },
-  erectors:   { name: 'Erector Spinae', short: 'Lower Back',    blurb: 'The columns either side of the spine. Extends the torso.' },
-  teres:      { name: 'Teres Major & Minor', short: 'Teres',    blurb: 'Under the armpit. Adds thickness under the rear delt.' },
-  rear_delts: { name: 'Posterior Deltoid', short: 'Rear Delts', blurb: 'Back of the shoulder. Pulls the arm horizontally back.' },
+  lats:       { name: 'Lats',       short: 'Lats',       blurb: 'The big V-taper muscle down the sides of your back. Width comes from here.' },
+  rhomboids:  { name: 'Upper Back', short: 'Upper Back', blurb: 'Between the shoulder blades. Rowing thickness and posture.' },
+  traps:      { name: 'Traps',      short: 'Traps',      blurb: 'Neck to mid-back. Shrugs, carries and heavy pulls.' },
+  erectors:   { name: 'Lower Back', short: 'Lower Back', blurb: 'The columns either side of the spine. Keeps you upright under load.' },
+  teres:      { name: 'Upper Lats', short: 'Upper Lats', blurb: 'Just under the armpit. Close and high pulling angles hit it best.' },
+  rear_delts: { name: 'Rear Delts', short: 'Rear Delts', blurb: 'The back of the shoulder. Small muscle, big posture payoff.' },
 };
 
 /** Order the regions paint in, so smaller regions land on top of bigger ones. */

@@ -1,32 +1,18 @@
 /*
  * data/back.js — the Back muscle group.
  *
- * Every exercise is authored as two or three keyframe poses; rig.js eases
- * between them and loops, so pose[0] is the stretched/start position and the
- * last pose is peak contraction.
+ * Demonstrations are photo pairs of real lifters (start + peak position) in
+ * img/demo/<id>-0.jpg and <id>-1.jpg, sourced from the public-domain
+ * free-exercise-db (see README). The app animates between the two frames.
  *
- * See js/rig.js for the angle convention. Floor is y = 0.
- * To add a muscle group, copy this file's shape — the UI is data-driven and
- * needs nothing else.
+ * `regions` is PRIORITY ORDER, not anatomical order: the workout generator
+ * walks it, so a shortened session drops the tail first.
  */
-
-import { scene, bar, barOnBack, dumbbells, pullupBar, cableRig, latBar, handle, armLinks, bench, pad, frame, footPlate } from '../equipment.js';
-
-const STAND = -86;   // pelvis height standing, feet on the floor
-const SIT = -46;     // pelvis height seated, side view
-const SIT_F = -58;   // pelvis height seated, front view (thighs foreshortened)
-/* Seated. thighK foreshortens the thigh for the 2D front view; hip3d/knee3d
-   are the real joint angles the 3D viewer uses instead. */
-const SEATED_LEGS_F = { thighK: 0.38, knee: 0, rootY: SIT_F, hip3d: 84, knee3d: 84 };
-const VIEWBOX = '-116 -214 232 236';
 
 export const group = {
   id: 'back',
   name: 'Back',
   tagline: 'Width, thickness and a spine that holds up',
-  // PRIORITY ORDER, not anatomical order. The generator fills a session by
-  // walking this list, so a shortened day drops teres and traps (which the
-  // big pulls already hit hard) before it drops the lats or the erectors.
   regions: ['lats', 'rhomboids', 'erectors', 'rear_delts', 'traps', 'teres'],
 };
 
@@ -34,35 +20,14 @@ export const exercises = [
   /* ─────────────────────────  LATS  ───────────────────────── */
   {
     id: 'lat-pulldown',
-    name: 'Lat Pulldown',
+    name: 'Wide-Grip Lat Pulldown',
     equipment: 'Machine',
     gear: 'Pulldown machine',
     target: 'lats',
     secondary: ['teres', 'rhomboids'],
     level: 'Beginner',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-136 -214 232 236',
-    tempo: 3000,
     setsReps: '3–4 × 8–12',
-    howTo: [
-      'Sit with your thighs locked under the pad, feet flat.',
-      'Take a grip a little wider than your shoulders, arms fully extended overhead.',
-      'Drive your elbows down and slightly back until the bar reaches your collarbone.',
-      'Control the bar all the way back up until your lats are fully stretched.',
-    ],
-    cues: ['Lead with the elbows, not the hands', 'Lean back no more than 15°', 'Do not let the shoulders shrug at the top'],
-    poses: [
-      { ...SEATED_LEGS_F, torso: -6, abduct: 148, elbow: 8, neck: 3 },
-      { ...SEATED_LEGS_F, torso: -14, abduct: 40, elbow: 100, neck: -3 },
-    ],
-    equipmentLayer: scene([
-      frame([[-92, -192, 6, -192]]),
-      cableRig({ pulley: [0, -188], postX: -92 }),
-      bench({ x: 4, y: -46, w: 64, h: 12 }),
-      pad({ x: 0, y: -63, w: 72, h: 11 }),
-      latBar({ halfWidth: 44 }),
-    ]),
+    cues: ['Lead with the elbows, not the hands', 'Bar to the collarbone, lean back no more than 15°', 'Control it all the way back up'],
   },
   {
     id: 'pull-up',
@@ -72,52 +37,19 @@ export const exercises = [
     target: 'lats',
     secondary: ['teres', 'rhomboids'],
     level: 'Advanced',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-116 -214 232 236',
-    tempo: 3200,
     setsReps: '4 × as many as you can',
-    howTo: [
-      'Hang from the bar with an overhand grip just outside shoulder width.',
-      'Set the shoulders down and back before you pull — no dead shrug.',
-      'Pull until your chin clears the bar, chest driving toward it.',
-      'Lower under control to a full hang. That is one rep.',
-    ],
-    cues: ['Squeeze the bar hard', 'Ribs down, no swinging', 'Full hang at the bottom or it does not count'],
-    poses: [
-      { rootY: -59, abduct: 140, elbow: 12, knee: 95, neck: 2 },
-      { rootY: -100, abduct: 60, elbow: 105, knee: 95, neck: -4 },
-    ],
-    equipmentLayer: scene([pullupBar({ y: -178, halfWidth: 62 })]),
+    cues: ['Full hang at the bottom or it does not count', 'Chin over the bar, chest to it', 'No swinging — ribs down'],
   },
   {
     id: 'straight-arm-pulldown',
     name: 'Straight-Arm Pulldown',
     equipment: 'Cable',
-    gear: 'High pulley',
+    gear: 'High pulley + bar',
     target: 'lats',
     secondary: ['teres'],
     level: 'Intermediate',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-75 -214 232 236',
-    tempo: 2600,
     setsReps: '3 × 12–15',
-    howTo: [
-      'Stand a stride back from a high pulley, hinge forward slightly, soft knees.',
-      'Start with arms forward and up, a small fixed bend at the elbow.',
-      'Sweep the bar down in an arc to your thighs using only the shoulders.',
-      'Let the bar float back up until you feel the lats lengthen.',
-    ],
-    cues: ['The elbow angle never changes', 'Think of pushing the bar away, then down', 'Pure lat isolation — go lighter than you think'],
-    poses: [
-      { rootY: STAND, torso: 18, hip: 8, knee: 14, shoulder: 100, elbow: 8 },
-      { rootY: STAND, torso: 22, hip: 8, knee: 14, shoulder: 12, elbow: 6 },
-    ],
-    equipmentLayer: scene([
-      cableRig({ pulley: [80, -170], postX: 88 }),
-      handle({ halfWidth: 22, angle: 0 }),
-    ]),
+    cues: ['The elbow angle never changes', 'Sweep the bar down to your thighs', 'Pure lat isolation — go lighter than you think'],
   },
   {
     id: 'dumbbell-pullover',
@@ -127,29 +59,11 @@ export const exercises = [
     target: 'lats',
     secondary: ['teres'],
     level: 'Intermediate',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-134 -214 232 236',
-    tempo: 3200,
     setsReps: '3 × 10–12',
-    howTo: [
-      'Lie flat on a bench, feet planted, one dumbbell cupped in both hands over your chest.',
-      'Keeping a slight elbow bend, lower the dumbbell back behind your head.',
-      'Stop where the stretch is strong but the ribs stay down.',
-      'Pull it back over your chest with the lats, not the arms.',
-    ],
-    cues: ['Ribs stay glued down — do not arch', 'Big stretch is the whole point', 'Slow on the way back'],
-    poses: [
-      { rootX: 12, rootY: -58, torso: -90, shoulder: 180, elbow: 8, hip: 68, knee: 77, neck: 0 },
-      { rootX: 12, rootY: -58, torso: -90, shoulder: 228, elbow: 14, hip: 68, knee: 77, neck: 0 },
-    ],
-    equipmentLayer: scene([
-      bench({ x: -20, y: -46, w: 118, h: 12 }),
-      dumbbells({ view: 'side', hands: 'right', size: 14 }),
-    ]),
+    cues: ['Ribs stay glued down — do not arch', 'The big stretch is the whole point', 'Pull back over with the lats, not the arms'],
   },
 
-  /* ────────────────  RHOMBOIDS & MID-BACK  ──────────────── */
+  /* ────────────────  UPPER BACK  ──────────────── */
   {
     id: 'seated-cable-row',
     name: 'Seated Cable Row',
@@ -158,28 +72,8 @@ export const exercises = [
     target: 'rhomboids',
     secondary: ['lats', 'traps'],
     level: 'Beginner',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-77 -214 232 236',
-    tempo: 3000,
     setsReps: '3–4 × 10–12',
-    howTo: [
-      'Sit tall with feet braced on the plate and a soft bend in the knees.',
-      'Reach forward and let the shoulder blades spread apart.',
-      'Pull the handle to your navel, driving the elbows past your ribs.',
-      'Squeeze the shoulder blades together for a beat, then reach forward again.',
-    ],
-    cues: ['Chest up, torso still — no rowing with the lower back', 'Pull to the belly, not the chest', 'Let the scapulae travel'],
-    poses: [
-      { rootY: SIT, torso: 20, hip: 88, knee: 74, shoulder: 60, elbow: 14, neck: -6 },
-      { rootY: SIT, torso: -4, hip: 92, knee: 78, shoulder: -10, elbow: 120, neck: 0 },
-    ],
-    equipmentLayer: scene([
-      cableRig({ pulley: [90, -26], postX: 100 }),
-      bench({ x: -8, y: -34, w: 74, h: 12 }),
-      footPlate({ x: 64, y: -18, angle: 14 }),
-      handle({ halfWidth: 14, angle: 90 }),
-    ]),
+    cues: ['Chest up, torso still — no rowing with the lower back', 'Pull to the belly, elbows past the ribs', 'Squeeze the blades together for a beat'],
   },
   {
     id: 'bent-over-barbell-row',
@@ -189,86 +83,122 @@ export const exercises = [
     target: 'rhomboids',
     secondary: ['lats', 'erectors'],
     level: 'Advanced',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-79 -214 232 236',
-    tempo: 2800,
     setsReps: '4 × 6–10',
-    howTo: [
-      'Hinge at the hips until your torso is around 45° from the floor, back flat.',
-      'Let the bar hang at arm’s length under your shoulders.',
-      'Row it to your lower ribs, elbows tracking back at about 45°.',
-      'Lower it fully without letting your chest drop.',
-    ],
-    cues: ['Torso angle must not change during the set', 'Brace hard — this loads the lower back', 'Bar touches around the belly button'],
-    poses: [
-      { rootY: -82, torso: 62, hip: 26, knee: 26, shoulder: 0, elbow: 0, neck: -20 },
-      { rootY: -82, torso: 60, hip: 26, knee: 26, shoulder: -87, elbow: 122, neck: -18 },
-    ],
-    equipmentLayer: scene([bar({ view: 'side', plate: 23 })]),
+    cues: ['Torso angle stays fixed for the whole set', 'Bar touches around the belly button', 'Brace hard — this loads the lower back'],
   },
   {
     id: 't-bar-row',
-    name: 'Chest-Supported T-Bar Row',
+    name: 'T-Bar Row',
     equipment: 'Machine',
-    gear: 'T-bar row machine',
+    gear: 'T-bar row station',
     target: 'rhomboids',
     secondary: ['lats', 'teres'],
     level: 'Beginner',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-94 -214 232 236',
-    tempo: 2800,
     setsReps: '3–4 × 10–12',
-    howTo: [
-      'Set the chest pad so your arms hang free and your chin clears the top.',
-      'Take the handles with arms fully extended, shoulder blades spread.',
-      'Row the handles to your ribs, elbows tight and driving back.',
-      'Lower slowly until you feel the stretch again.',
-    ],
-    cues: ['Chest never leaves the pad — that is the point', 'No body English, all back', 'Pause for a second at the top'],
-    poses: [
-      { rootY: -78, torso: 56, hip: 34, knee: 30, shoulder: 0, elbow: 0, neck: -16 },
-      { rootY: -78, torso: 56, hip: 34, knee: 30, shoulder: -85, elbow: 120, neck: -14 },
-    ],
-    equipmentLayer: scene([
-      pad({ x: 52, y: -86, w: 15, h: 70, angle: 56 }),
-      frame([[52, -58, 52, 0], [22, 0, 78, 0], [-40, -4, 30, -30]]),
-      bar({ view: 'side', plate: 20 }),
-    ]),
+    cues: ['Chest stays proud, back flat', 'Drive the elbows back, not up', 'Pause for a second at the top'],
   },
   {
     id: 'single-arm-dumbbell-row',
-    name: 'Single-Arm Dumbbell Row',
+    name: 'One-Arm Dumbbell Row',
     equipment: 'Dumbbell',
     gear: 'Dumbbell + bench',
     target: 'rhomboids',
     secondary: ['lats', 'teres'],
     level: 'Beginner',
-    view: 'side',
-    // One side works while the other braces, so the far arm is posed apart.
-    asymmetric: true,
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-90 -214 232 236',
-    tempo: 2800,
     setsReps: '3 × 10–12 each side',
-    howTo: [
-      'Brace one hand and the same-side knee on a bench, back flat and level.',
-      'Let the dumbbell hang straight down, shoulder blade reaching toward the floor.',
-      'Row it to your hip, elbow brushing past your ribs.',
-      'Lower all the way and let the shoulder blade travel again.',
-    ],
-    cues: ['Hips stay square — do not twist to lift more', 'Pull to the hip, not the armpit', 'Full stretch at the bottom'],
-    poses: [
-      { rootY: -80, torso: 74, hip: 18, knee: 20, shoulder: 0, elbow: 0, neck: -28,
-        farShoulder: 0, farElbow: 60 },
-      { rootY: -80, torso: 74, hip: 18, knee: 20, shoulder: -80, elbow: 115, neck: -26,
-        farShoulder: 80, farElbow: -55 },
-    ],
-    equipmentLayer: scene([
-      bench({ x: 42, y: -44, w: 84, h: 12 }),
-      dumbbells({ view: 'side', hands: 'right', size: 13 }),
-    ]),
+    cues: ['Hips stay square — do not twist to lift more', 'Row to the hip, not the armpit', 'Full stretch at the bottom'],
+  },
+
+  /* ────────────────  LOWER BACK  ──────────────── */
+  {
+    id: 'deadlift',
+    name: 'Deadlift',
+    equipment: 'Barbell',
+    gear: 'Barbell',
+    target: 'erectors',
+    secondary: ['traps', 'lats'],
+    level: 'Advanced',
+    setsReps: '3–5 × 3–6',
+    cues: ['Back flat from start to finish', 'Bar drags up the legs in a straight line', 'Squeeze the glutes at the top — do not lean back'],
+  },
+  {
+    id: 'back-extension',
+    name: 'Back Extension',
+    equipment: 'Machine',
+    gear: 'Hyperextension bench',
+    target: 'erectors',
+    secondary: ['rhomboids'],
+    level: 'Beginner',
+    setsReps: '3 × 12–15',
+    cues: ['Stop at a straight line — never hyperextend', 'Squeeze the glutes to finish each rep', 'Hug a plate once bodyweight is easy'],
+  },
+  {
+    id: 'good-morning',
+    name: 'Good Morning',
+    equipment: 'Barbell',
+    gear: 'Barbell',
+    target: 'erectors',
+    secondary: ['rhomboids'],
+    level: 'Advanced',
+    setsReps: '3 × 8–10',
+    cues: ['Start much lighter than you expect', 'Hips move back, not down', 'The moment the back rounds, the set is over'],
+  },
+  {
+    id: 'rack-pull',
+    name: 'Rack Pull',
+    equipment: 'Barbell',
+    gear: 'Barbell + rack',
+    target: 'erectors',
+    secondary: ['traps', 'rhomboids'],
+    level: 'Intermediate',
+    setsReps: '3–4 × 5–8',
+    cues: ['Pins at knee height, deadlift rules apply', 'No bouncing off the pins', 'Heavier than a deadlift — respect it'],
+  },
+
+  /* ────────────────  REAR DELTS  ──────────────── */
+  {
+    id: 'reverse-machine-fly',
+    name: 'Reverse Machine Fly',
+    equipment: 'Machine',
+    gear: 'Pec deck (reversed)',
+    target: 'rear_delts',
+    secondary: ['rhomboids'],
+    level: 'Beginner',
+    setsReps: '3 × 12–15',
+    cues: ['Almost-straight arms, no bicep curl', 'Stop when the hands reach your body line', 'Light weight, high reps — rear delts are small'],
+  },
+  {
+    id: 'face-pull',
+    name: 'Cable Face Pull',
+    equipment: 'Cable',
+    gear: 'High pulley + rope',
+    target: 'rear_delts',
+    secondary: ['traps', 'rhomboids'],
+    level: 'Beginner',
+    setsReps: '3 × 15–20',
+    cues: ['Pull to the face, elbows high', 'Split the rope apart as it reaches you', 'The best exercise for shoulder health'],
+  },
+  {
+    id: 'rear-delt-raise',
+    name: 'Bent-Over Rear Delt Raise',
+    equipment: 'Dumbbell',
+    gear: 'Two dumbbells',
+    target: 'rear_delts',
+    secondary: ['rhomboids', 'teres'],
+    level: 'Beginner',
+    setsReps: '3 × 12–15',
+    cues: ['Chest close to the thighs, arms hang', 'Lead with the pinky side of the hand', 'No swinging — smaller and stricter beats bigger'],
+  },
+  {
+    id: 'cable-rear-delt-fly',
+    name: 'Cable Rear Delt Fly',
+    equipment: 'Cable',
+    gear: 'Two high pulleys',
+    target: 'rear_delts',
+    secondary: ['rhomboids', 'traps'],
+    level: 'Intermediate',
+    setsReps: '3 × 12–15',
+    cues: ['Cross the cables, opposite hand to pulley', 'Arms stay long the whole arc', 'Constant tension is the cable advantage'],
   },
 
   /* ─────────────────────────  TRAPS  ───────────────────────── */
@@ -280,23 +210,8 @@ export const exercises = [
     target: 'traps',
     secondary: ['rhomboids'],
     level: 'Beginner',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-116 -214 232 236',
-    tempo: 2400,
     setsReps: '3–4 × 12–15',
-    howTo: [
-      'Stand tall holding a barbell at arm’s length in front of your thighs.',
-      'Keep the arms completely straight — they are only hooks.',
-      'Shrug the shoulders straight up toward your ears.',
-      'Pause at the top, then lower slowly to a full stretch.',
-    ],
-    cues: ['Straight up and down — never roll the shoulders', 'Hold the top for a full second', 'Chin tucked, do not crane the neck'],
-    poses: [
-      { rootY: STAND, abduct: 6, elbow: 0, neck: 2 },
-      { rootY: STAND - 11, abduct: 6, elbow: 0, neck: -4 },
-    ],
-    equipmentLayer: scene([bar({ view: 'front', halfWidth: 56, plate: 22 })]),
+    cues: ['Straight up and down — never roll the shoulders', 'Hold the top for a full second', 'Arms are hooks, keep them straight'],
   },
   {
     id: 'dumbbell-shrug',
@@ -306,23 +221,8 @@ export const exercises = [
     target: 'traps',
     secondary: ['rhomboids'],
     level: 'Beginner',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-116 -214 232 236',
-    tempo: 2400,
     setsReps: '3 × 12–15',
-    howTo: [
-      'Stand with a dumbbell hanging at each side, palms facing in.',
-      'Let the shoulders drop fully to start.',
-      'Shrug straight up as high as you can without bending the elbows.',
-      'Lower under control — do not just drop the weight.',
-    ],
-    cues: ['Dumbbells let the shoulders travel further than a bar', 'No elbow bend at all', 'Slow eccentric builds the traps'],
-    poses: [
-      { rootY: STAND, abduct: 9, elbow: 0, neck: 2 },
-      { rootY: STAND - 12, abduct: 9, elbow: 0, neck: -4 },
-    ],
-    equipmentLayer: scene([dumbbells({ view: 'front', size: 12 })]),
+    cues: ['Dumbbells allow a longer range than a bar', 'Shrug to the ears, lower slow', 'No elbow bend at all'],
   },
   {
     id: 'cable-upright-row',
@@ -332,26 +232,8 @@ export const exercises = [
     target: 'traps',
     secondary: ['rear_delts'],
     level: 'Intermediate',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-139 -214 232 236',
-    tempo: 2600,
     setsReps: '3 × 10–12',
-    howTo: [
-      'Stand over a low pulley holding a straight bar at shoulder width.',
-      'Pull the bar up the front of your body, leading with the elbows.',
-      'Stop when the elbows reach shoulder height — no higher.',
-      'Lower slowly until the arms are straight again.',
-    ],
-    cues: ['Elbows lead and stay above the wrists', 'Stop at shoulder height to protect the shoulder', 'Shoulder-width grip, not narrow'],
-    poses: [
-      { rootY: STAND, abduct: 8, elbow: 2 },
-      { rootY: STAND, abduct: 88, elbow: -168, neck: -2 },
-    ],
-    equipmentLayer: scene([
-      cableRig({ pulley: [0, -14], postX: -92 }),
-      bar({ view: 'front', halfWidth: 34, plate: 12 }),
-    ]),
+    cues: ['Elbows lead and stay above the wrists', 'Stop at shoulder height to protect the shoulders', 'Grip at shoulder width, not narrow'],
   },
   {
     id: 'farmers-carry',
@@ -361,390 +243,59 @@ export const exercises = [
     target: 'traps',
     secondary: ['erectors'],
     level: 'Intermediate',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-116 -214 232 236',
-    tempo: 2000,
     setsReps: '3 × 30–40 m',
-    howTo: [
-      'Pick up the heaviest pair you can hold with a flat back.',
-      'Stand tall, shoulders pulled down and back, ribs stacked over hips.',
-      'Walk in a straight line with short controlled steps.',
-      'Set them down under control — do not drop and dump.',
-    ],
-    cues: ['Traps hold the load isometrically the whole way', 'Do not lean back', 'Grip gives out before the traps do'],
-    poses: [
-      { rootY: STAND, abduct: 10, elbow: 0, hip: 0, knee: 4 },
-      { rootY: STAND + 2, abduct: 10, elbow: 0, hip: 0, knee: 22 },
-    ],
-    equipmentLayer: scene([dumbbells({ view: 'front', size: 14 })]),
+    cues: ['Stand tall, shoulders down and back', 'Short controlled steps', 'Grip gives out before the traps do'],
   },
 
-  /* ────────────────  ERECTOR SPINAE / LOWER BACK  ──────────────── */
-  {
-    id: 'deadlift',
-    name: 'Conventional Deadlift',
-    equipment: 'Barbell',
-    gear: 'Barbell',
-    target: 'erectors',
-    secondary: ['traps', 'lats'],
-    level: 'Advanced',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-88 -214 232 236',
-    tempo: 3400,
-    setsReps: '3–5 × 3–6',
-    howTo: [
-      'Stand with the bar over mid-foot, shins almost touching it.',
-      'Hinge and grip just outside your knees, chest up and back flat.',
-      'Push the floor away and stand up, keeping the bar against your legs.',
-      'Lock out tall, then hinge the bar back down along the same path.',
-    ],
-    cues: ['Back stays flat from start to finish', 'Bar travels in a straight vertical line', 'Squeeze the glutes at lockout — do not lean back'],
-    poses: [
-      { rootY: -62, torso: 66, hip: 52, knee: 74, shoulder: 4, elbow: 2, neck: -22 },
-      { rootY: STAND, torso: 2, hip: 0, knee: 4, shoulder: 2, elbow: 0, neck: 0 },
-    ],
-    equipmentLayer: scene([bar({ view: 'side', plate: 26 })]),
-  },
-  {
-    id: 'back-extension',
-    name: '45° Back Extension',
-    equipment: 'Machine',
-    gear: 'Hyperextension bench',
-    target: 'erectors',
-    secondary: ['rhomboids'],
-    level: 'Beginner',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-89 -214 232 236',
-    tempo: 3000,
-    setsReps: '3 × 12–15',
-    howTo: [
-      'Set the pad just below your hip bones so you can hinge freely.',
-      'Cross your arms on your chest and start with the torso folded down.',
-      'Extend until your body forms one straight line — no further.',
-      'Lower back down with control, feeling the lower back lengthen.',
-    ],
-    cues: ['Stop at straight — hyperextending is where people get hurt', 'Squeeze the glutes to finish the rep', 'Add weight to your chest once bodyweight is easy'],
-    poses: [
-      { rootY: -80, torso: 130, hip: -22, knee: 4, shoulder: 46, elbow: 124, neck: 10 },
-      { rootY: -80, torso: 45, hip: -22, knee: 4, shoulder: -18, elbow: 130, neck: 6 },
-    ],
-    equipmentLayer: scene([
-      pad({ x: 2, y: -70, w: 34, h: 22, angle: 45 }),
-      frame([
-        [2, -58, 2, 0], [-26, 0, 32, 0],          // hip post and base
-        [2, -58, -40, -18],                        // the 45 degree frame rail
-        [-40, -18, -40, 0], [-40, -26, -18, -26],  // ankle brace
-        [-40, -12, -18, -12],
-      ]),
-    ]),
-  },
-  {
-    id: 'good-morning',
-    name: 'Good Morning',
-    equipment: 'Barbell',
-    gear: 'Barbell',
-    target: 'erectors',
-    secondary: ['rhomboids'],
-    level: 'Advanced',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-91 -214 232 236',
-    tempo: 3200,
-    setsReps: '3 × 8–10',
-    howTo: [
-      'Set a light bar across your upper traps, feet hip-width.',
-      'Soften the knees and push your hips straight back.',
-      'Lower the chest toward the floor while the back stays perfectly flat.',
-      'Drive the hips forward to stand back up.',
-    ],
-    cues: ['Start much lighter than you expect', 'Hips move back, not down', 'The moment the back rounds, the set is over'],
-    poses: [
-      { rootY: STAND, torso: 4, hip: 0, knee: 8, shoulder: 20, elbow: 160, neck: 0 },
-      { rootY: STAND - 4, torso: 76, hip: -18, knee: 22, shoulder: 92, elbow: 160, neck: -50 },
-    ],
-    equipmentLayer: scene([barOnBack({ view: 'side', plate: 22 })]),
-  },
-  {
-    id: 'rack-pull',
-    name: 'Rack Pull',
-    equipment: 'Barbell',
-    gear: 'Barbell + rack',
-    target: 'erectors',
-    secondary: ['traps', 'rhomboids'],
-    level: 'Intermediate',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-112 -214 232 236',
-    tempo: 2800,
-    setsReps: '3–4 × 5–8',
-    howTo: [
-      'Set the safety pins at or just below knee height and load the bar.',
-      'Take a deadlift stance and grip, chest up, back flat.',
-      'Drive the hips through and stand tall, dragging the bar up your thighs.',
-      'Lower it back to the pins under control.',
-    ],
-    cues: ['Shorter range means you can go heavier — respect that', 'Do not bounce off the pins', 'Great for building the upper back and traps'],
-    poses: [
-      { rootY: -74, torso: 48, hip: 26, knee: 34, shoulder: 4, elbow: 2, neck: -16 },
-      { rootY: STAND, torso: 2, hip: 0, knee: 4, shoulder: 2, elbow: 0, neck: 0 },
-    ],
-    equipmentLayer: scene([
-      frame([[-70, 0, -70, -150], [70, 0, 70, -150], [-70, -46, -46, -46], [70, -46, 46, -46]]),
-      bar({ view: 'side', plate: 26 }),
-    ]),
-  },
-
-  /* ─────────────────────────  TERES  ───────────────────────── */
+  /* ─────────────────────────  UPPER LATS  ───────────────────────── */
   {
     id: 'neutral-grip-pulldown',
-    name: 'Close Neutral-Grip Pulldown',
+    name: 'Close-Grip Pulldown',
     equipment: 'Machine',
     gear: 'Cable + V handle',
     target: 'teres',
     secondary: ['lats', 'rhomboids'],
     level: 'Beginner',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-140 -214 232 236',
-    tempo: 3000,
     setsReps: '3 × 10–12',
-    howTo: [
-      'Sit under the pulley with a close neutral (palms-facing) handle.',
-      'Start with arms fully extended and the shoulder blades relaxed up.',
-      'Pull the handle to your upper chest, elbows driving straight down.',
-      'Return slowly until the arms are locked out again.',
-    ],
-    cues: ['The narrow neutral grip biases the teres and lower lat', 'Elbows travel down, not back', 'Keep the torso nearly vertical'],
-    poses: [
-      { ...SEATED_LEGS_F, torso: -4, abduct: 158, elbow: -6, neck: 3 },
-      { ...SEATED_LEGS_F, torso: -10, abduct: 24, elbow: 168, neck: -2 },
-    ],
-    equipmentLayer: scene([
-      frame([[-92, -192, 6, -192]]),
-      cableRig({ pulley: [0, -188], postX: -92 }),
-      bench({ x: 4, y: -46, w: 64, h: 12 }),
-      pad({ x: 0, y: -63, w: 72, h: 11 }),
-      handle({ halfWidth: 15, angle: 0 }),
-    ]),
+    cues: ['The close neutral grip hits the upper lats', 'Elbows drive straight down', 'Torso nearly vertical, tiny lean only'],
   },
   {
     id: 'meadows-row',
-    name: 'Landmine / Meadows Row',
+    name: 'One-Arm Landmine Row',
     equipment: 'Barbell',
-    gear: 'Landmine barbell',
+    gear: 'Barbell in a corner',
     target: 'teres',
     secondary: ['rhomboids', 'lats'],
     level: 'Advanced',
-    view: 'side',
-    // One side works while the other braces, so the far arm is posed apart.
-    asymmetric: true,
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-118 -214 232 236',
-    tempo: 2800,
     setsReps: '3 × 8–10 each side',
-    howTo: [
-      'Wedge one end of a barbell into a corner or landmine sleeve.',
-      'Stand side-on, hinge over and grip the loaded end overhand.',
-      'Row it up and back toward your hip, elbow flaring slightly out.',
-      'Lower into a deep stretch, letting the shoulder blade reach forward.',
-    ],
-    cues: ['The arc is up and back, not straight up', 'Slight elbow flare hits the teres', 'Let the shoulder blade move at the bottom'],
-    poses: [
-      { rootY: -82, torso: 70, hip: 24, knee: 26, shoulder: 0, elbow: 0, neck: -26 },
-      { rootY: -82, torso: 68, hip: 24, knee: 26, shoulder: -82, elbow: 118, neck: -24 },
-    ],
-    equipmentLayer: scene([
-      frame([[-96, 0, -30, -34]]),
-      bar({ view: 'side', plate: 20 }),
-    ]),
+    cues: ['Row up and back toward the hip', 'A little elbow flare is the point here', 'Let the blade reach forward at the bottom'],
   },
   {
-    id: 'wide-grip-seated-row',
-    name: 'Wide-Grip Seated Row',
-    equipment: 'Machine',
-    gear: 'Low pulley + bar',
+    id: 'v-bar-pullup',
+    name: 'V-Bar Pull-Up',
+    equipment: 'Bodyweight',
+    gear: 'Pull-up bar + V handle',
     target: 'teres',
-    secondary: ['rear_delts', 'rhomboids'],
-    level: 'Beginner',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-77 -214 232 236',
-    tempo: 3000,
-    setsReps: '3 × 12–15',
-    howTo: [
-      'Sit tall with a wide overhand grip on a long bar.',
-      'Reach forward and let the shoulder blades spread.',
-      'Row the bar to your upper chest with the elbows flared out wide.',
-      'Return under control to a full stretch.',
-    ],
-    cues: ['Pull high, to the chest — that is what flares the elbows', 'Wide grip shifts work to the teres and rear delts', 'Do not lean back to finish the rep'],
-    poses: [
-      { rootY: SIT, torso: 22, hip: 88, knee: 74, shoulder: 64, elbow: 12, neck: -6 },
-      { rootY: SIT, torso: -4, hip: 92, knee: 78, shoulder: 100, elbow: 140, neck: 0 },
-    ],
-    equipmentLayer: scene([
-      cableRig({ pulley: [90, -70], postX: 100 }),
-      bench({ x: -8, y: -34, w: 74, h: 12 }),
-      footPlate({ x: 64, y: -18, angle: 14 }),
-      handle({ halfWidth: 26, angle: 0 }),
-    ]),
+    secondary: ['lats', 'rhomboids'],
+    level: 'Advanced',
+    setsReps: '3 × 6–10',
+    cues: ['Narrow neutral grip, chest to the hands', 'Lean back slightly as you rise', 'Slow negative — do not drop'],
   },
   {
     id: 'machine-high-row',
     name: 'Machine High Row',
     equipment: 'Machine',
-    gear: 'High row machine',
+    gear: 'Plate-loaded high row',
     target: 'teres',
     secondary: ['lats', 'rhomboids'],
     level: 'Beginner',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-94 -214 232 236',
-    tempo: 2800,
     setsReps: '3 × 10–12',
-    howTo: [
-      'Set the seat so the handles sit above shoulder height when your arms are extended.',
-      'Chest against the pad, take the handles with arms fully out in front and up.',
-      'Pull down and back toward your armpits.',
-      'Let the handles travel all the way out to a full stretch.',
-    ],
-    cues: ['The high angle is what makes it a teres exercise', 'Chest stays on the pad', 'Think elbows into your back pockets'],
-    poses: [
-      { rootY: -50, torso: 12, hip: 84, knee: 76, shoulder: 120, elbow: 10, neck: 4 },
-      { rootY: -50, torso: 12, hip: 84, knee: 76, shoulder: 96, elbow: 150, neck: 0 },
-    ],
-    equipmentLayer: scene([
-      pad({ x: 40, y: -92, w: 14, h: 56, angle: 8 }),
-      bench({ x: -6, y: -38, w: 70, h: 12 }),
-      frame([[40, -62, 40, 0], [78, -156, 78, -30], [40, -156, 78, -156]]),
-      handle({ halfWidth: 13, angle: 90 }),
-    ]),
-  },
-
-  /* ────────────────────  REAR DELTS  ──────────────────── */
-  {
-    id: 'reverse-pec-deck',
-    name: 'Reverse Pec Deck',
-    equipment: 'Machine',
-    gear: 'Pec deck (reversed)',
-    target: 'rear_delts',
-    secondary: ['rhomboids'],
-    level: 'Beginner',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-112 -214 232 236',
-    tempo: 2600,
-    setsReps: '3 × 12–15',
-    howTo: [
-      'Sit facing the pad with the handles set at shoulder height.',
-      'Take the handles with arms straight out in front of you.',
-      'Sweep the arms out and back in a wide arc until they line up with your body.',
-      'Return slowly, resisting the whole way.',
-    ],
-    cues: ['Almost-straight arms, no bicep curl', 'Stop when the hands reach your body line', 'Light weight, high reps — rear delts are small'],
-    poses: [
-      { ...SEATED_LEGS_F, torso: 6, abduct: 22, elbow: 26 },
-      { ...SEATED_LEGS_F, torso: 4, abduct: 92, elbow: 12 },
-    ],
-    equipmentLayer: scene([
-      pad({ x: 0, y: -104, w: 34, h: 58 }),
-      bench({ x: 0, y: -46, w: 60, h: 12 }),
-      frame([[0, -50, 0, 0]]),
-      armLinks({ pivot: [0, -172] }),
-    ]),
-  },
-  {
-    id: 'face-pull',
-    name: 'Cable Face Pull',
-    equipment: 'Cable',
-    gear: 'Pulley + rope',
-    target: 'rear_delts',
-    secondary: ['traps', 'rhomboids'],
-    level: 'Beginner',
-    view: 'side',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-77 -214 232 236',
-    tempo: 2800,
-    setsReps: '3 × 15–20',
-    howTo: [
-      'Set a rope at roughly face height and step back until the cable is tight.',
-      'Start with arms extended, thumbs pointing back.',
-      'Pull the rope toward your forehead, splitting your hands apart.',
-      'Finish with the elbows high and slightly behind your shoulders.',
-    ],
-    cues: ['Elbows finish above the wrists', 'Pull to the face, not the chin', 'The single best exercise for shoulder health'],
-    poses: [
-      { rootY: STAND, torso: -4, shoulder: 92, elbow: 12, hip: 2, knee: 10 },
-      { rootY: STAND, torso: -6, shoulder: 84, elbow: 62, hip: 2, knee: 10, neck: 2 },
-    ],
-    equipmentLayer: scene([
-      cableRig({ pulley: [82, -138], postX: 90 }),
-      handle({ halfWidth: 13, angle: 90 }),
-    ]),
-  },
-  {
-    id: 'chest-supported-rear-fly',
-    name: 'Chest-Supported Rear Delt Fly',
-    equipment: 'Dumbbell',
-    gear: 'Dumbbells + incline',
-    target: 'rear_delts',
-    secondary: ['rhomboids', 'teres'],
-    level: 'Beginner',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-112 -214 232 236',
-    tempo: 2800,
-    setsReps: '3 × 12–15',
-    howTo: [
-      'Lie chest-down on a bench set to about 30–45°.',
-      'Let the dumbbells hang straight down with a slight elbow bend.',
-      'Raise them out to the sides in a wide arc until level with your shoulders.',
-      'Lower slowly — no swinging, no shrugging.',
-    ],
-    cues: ['Chest supported means zero cheating', 'Lead with the pinky side of the hand', 'Stop at shoulder level'],
-    poses: [
-      { ...SEATED_LEGS_F, torso: 4, abduct: 12, elbow: 18 },
-      { ...SEATED_LEGS_F, torso: 4, abduct: 88, elbow: 14, neck: -4 },
-    ],
-    equipmentLayer: scene([
-      pad({ x: 0, y: -110, w: 50, h: 66 }),
-      frame([[0, -60, 0, 0], [-26, 0, 26, 0], [-25, -60, 25, -60]]),
-      dumbbells({ view: 'front', size: 11 }),
-    ]),
-  },
-  {
-    id: 'reverse-cable-fly',
-    name: 'Reverse Cable Crossover',
-    equipment: 'Cable',
-    gear: 'Two high pulleys',
-    target: 'rear_delts',
-    secondary: ['rhomboids', 'traps'],
-    level: 'Intermediate',
-    view: 'front',
-    // Framed so the scene sits centred; see CLAUDE.md on re-measuring.
-    viewBox: '-116 -214 232 236',
-    tempo: 2800,
-    setsReps: '3 × 12–15',
-    howTo: [
-      'Set both pulleys at shoulder height and grab the opposite handle in each hand.',
-      'Stand in the middle with arms crossed in front of you.',
-      'Sweep both arms out and back in a wide arc, opening the chest.',
-      'Return under control without letting the arms collapse forward.',
-    ],
-    cues: ['Constant tension the whole range — that is the cable advantage', 'Arms stay long', 'Squeeze the shoulder blades at the end'],
-    poses: [
-      { rootY: STAND, abduct: 26, elbow: 40, knee: 6 },
-      { rootY: STAND, abduct: 96, elbow: 8, knee: 6 },
-    ],
-    equipmentLayer: scene([
-      cableRig({ pulley: [-70, -140], postX: -92, attach: 'left' }),
-      cableRig({ pulley: [70, -140], postX: 92, attach: 'right' }),
-    ]),
+    cues: ['The high pulling angle is what hits the upper lats', 'Chest stays on the pad', 'Elbows into the back pockets'],
   },
 ];
+
+/** Demonstration frames follow a naming convention, so no per-exercise wiring. */
+export const demo = (id, frame) => `./img/demo/${id}-${frame}.jpg`;
 
 /** Every exercise, keyed by id. */
 export const byId = Object.fromEntries(exercises.map((e) => [e.id, e]));
