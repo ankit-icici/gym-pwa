@@ -1,5 +1,9 @@
 # Working on this repo
 
+The app is named **The Forge** (user-chosen). The name lives in index.html
+(title + apple-mobile-web-app-title), manifest.webmanifest (name/short_name)
+and the home screen's `setBar` call — keep them in sync if it ever changes.
+
 A static PWA with **no build step, no dependencies, no package.json** — edit the
 files and reload. Keep it that way; it is what makes the project portable
 across machines and sessions.

@@ -1,8 +1,8 @@
-# Gym — Train with intent
+# The Forge — Train with intent
 
-An installable PWA that lists gym exercises by muscle group, animates every
-movement, names the muscle each one trains, and builds a six-exercise day for a
-muscle group in one tap.
+**The Forge** — an installable PWA that lists gym exercises by muscle group,
+demonstrates every movement with real photography, names the muscle each one
+trains, and builds an ordered training day in one tap.
 
 All six muscle groups are live — **217 exercises**, at least 10 per target
 area, every one demonstrated with real photography and placed only under the

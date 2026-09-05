@@ -1,7 +1,7 @@
 {
-  "name": "Gym — Train with intent",
-  "short_name": "Gym",
-  "description": "Animated exercise library by muscle group, with one-tap workout building.",
+  "name": "The Forge — Train with intent",
+  "short_name": "The Forge",
+  "description": "Real exercise demonstrations by muscle group, with one-tap workout building.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -289,7 +289,7 @@ function ringSvg(frac, size = 46) {
 }
 
 function screenHome() {
-  setBar('Gym');
+  setBar('The Forge');
   const saved = REGISTRY.filter((g) => g.ready)
     .map((g) => ({ g, w: loadWorkout(g.id) }))
     .filter((x) => x.w);
