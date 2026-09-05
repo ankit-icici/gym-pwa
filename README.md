@@ -41,6 +41,9 @@ muscle it primarily trains:
   and two rows the way a real session is programmed. Arm day follows a fixed
   plan — 4 biceps, 3 triceps, 2 forearms, alternating. Tick them off, swap any
   slot within the same muscle, or rebuild.
+- **Share it.** A share button in the header (and a row on the home screen)
+  hands someone the app link via the phone's normal share sheet, falling back
+  to copying the link on desktop.
 - **Works offline, installs to the home screen, light and dark themes.**
 
 ## Running it locally

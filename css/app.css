@@ -128,6 +128,20 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .icon-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.9;
   stroke-linecap: round; stroke-linejoin: round; }
 
+/* Confirmation for the copy-link fallback, where there is no OS share sheet. */
+.toast {
+  position: fixed; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 20px); z-index: 90; pointer-events: none;
+  max-width: calc(100vw - 32px);
+  padding: 11px 18px; border-radius: 999px;
+  background: var(--text); color: var(--bg);
+  font-size: 14px; font-weight: 560; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: var(--shadow-lg);
+  opacity: 0; transition: opacity .22s var(--ease), transform .28s var(--ease);
+}
+.toast.is-up { opacity: 1; transform: translate(-50%, 0); }
+
 /* ============================================================
    Screens & transitions
    ============================================================ */
