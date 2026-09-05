@@ -1,7 +1,7 @@
 /* Service worker: precache the shell, then serve it cache-first so the app
    opens instantly and works with no signal in the gym basement.
    Bump CACHE whenever you ship changes. */
-const CACHE = 'gym-v10';
+const CACHE = 'gym-v11';
 const SHELL = [
   './',
   './index.html',
@@ -15,8 +15,10 @@ const SHELL = [
   './js/data/arms.js',
   './js/data/legs.js',
   './js/data/core.js',
+  './icons/apple-touch-icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
   './img/demo/3-4-sit-up-0.jpg',
   './img/demo/3-4-sit-up-1.jpg',
   './img/demo/ab-rollout-0.jpg',
@@ -113,6 +115,8 @@ const SHELL = [
   './img/demo/cable-wrist-curl-1.jpg',
   './img/demo/calf-machine-shrug-0.jpg',
   './img/demo/calf-machine-shrug-1.jpg',
+  './img/demo/captains-chair-knee-raise-0.jpg',
+  './img/demo/captains-chair-knee-raise-1.jpg',
   './img/demo/chest-dips-0.jpg',
   './img/demo/chest-dips-1.jpg',
   './img/demo/chest-supported-barbell-row-0.jpg',
@@ -395,6 +399,8 @@ const SHELL = [
   './img/demo/smith-incline-press-1.jpg',
   './img/demo/smith-machine-bench-press-0.jpg',
   './img/demo/smith-machine-bench-press-1.jpg',
+  './img/demo/smith-machine-hip-raise-0.jpg',
+  './img/demo/smith-machine-hip-raise-1.jpg',
   './img/demo/smith-machine-row-0.jpg',
   './img/demo/smith-machine-row-1.jpg',
   './img/demo/smith-machine-squat-0.jpg',

@@ -6,8 +6,8 @@
  *    once in the whole app. No duplicates across regions or groups.
  *  - Shoulder-primary movements (shrugs, upright rows, carries) do NOT belong
  *    to Back; they go to the Shoulders group when it is built.
- *  - At least 10 exercises per region, mixing machine, cable, barbell,
- *    dumbbell and bodyweight.
+ *  - At least 10 exercises per region, with at least three distinct
+ *    equipment types among machine, cable, barbell, dumbbell and bodyweight.
  *
  * Demonstrations are photo pairs of real lifters (start + peak) in
  * img/demo/<id>-0.jpg and <id>-1.jpg, from the public-domain

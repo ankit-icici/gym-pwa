@@ -12,7 +12,7 @@ const REGISTRY = [
   { id: 'shoulders', name: 'Shoulders', ready: true, count: 33, areas: 3, art: 'side_delts',  load: () => import('./data/shoulders.js') },
   { id: 'arms',      name: 'Arms',      ready: true, count: 33, areas: 3, art: 'biceps',      load: () => import('./data/arms.js') },
   { id: 'legs',      name: 'Legs',      ready: true, count: 44, areas: 4, art: 'quads',       load: () => import('./data/legs.js') },
-  { id: 'core',      name: 'Core',      ready: true, count: 32, areas: 3, art: 'upper_abs',   load: () => import('./data/core.js') },
+  { id: 'core',      name: 'Core',      ready: true, count: 34, areas: 3, art: 'upper_abs',   load: () => import('./data/core.js') },
 ];
 
 const EQUIPMENT_FILTERS = ['All', 'Machine', 'Cable', 'Barbell', 'Dumbbell', 'Bodyweight'];

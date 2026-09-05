@@ -15,7 +15,7 @@ export const group = {
 };
 
 export const exercises = [
-  /* ─────  LOWER ABS  (10)  ───── */
+  /* ─────  LOWER ABS  (12)  ───── */
   {
     id: "hanging-leg-raise", name: "Hanging Leg Raise",
     equipment: "Bodyweight", target: "lower_abs",
@@ -85,6 +85,21 @@ export const exercises = [
     secondary: [],
     level: "Beginner", setsReps: "3 × 12–15",
     cues: ["Arms and legs rise together", "Touch toes at the top", "Lower everything slow"],
+  },
+
+  {
+    id: "smith-machine-hip-raise", name: "Smith Machine Hip Raise",
+    equipment: "Machine", target: "lower_abs",
+    secondary: [],
+    level: "Intermediate", setsReps: "3 × 12–15",
+    cues: ["Bar set low, hips curl up to it", "The fixed path keeps it strict", "Squeeze at the top, lower slow"],
+  },
+  {
+    id: "captains-chair-knee-raise", name: "Captain's Chair Knee Raise",
+    equipment: "Machine", target: "lower_abs",
+    secondary: [],
+    level: "Beginner", setsReps: "3 × 12–15",
+    cues: ["Back flat against the pad", "Curl the hips, do not just lift the knees", "No swinging from the shoulders"],
   },
 
   /* ─────  UPPER ABS  (11)  ───── */

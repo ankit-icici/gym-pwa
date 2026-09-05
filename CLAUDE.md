@@ -14,10 +14,13 @@ there is nothing on the owner's machine and no external service to configure.
 | Deploy | `git push origin main`. Pages republishes in 1–3 minutes. That is the whole process. |
 | Stack | Plain HTML + CSS + ES modules. No dependencies, no package.json, no bundler. |
 
-After any change that ships files: bump `CACHE` in `sw.js` (e.g. `gym-v7` ->
-`gym-v8`), or installed phones keep serving the old version. If you add or
-remove files under `img/demo/` or `js/data/`, regenerate the `SHELL` list in
-`sw.js` too — it precaches every file for offline use.
+After any change that ships files: bump `CACHE` in `sw.js` to the next number
+(it is a plain `gym-vN` counter — check the file for the current value), or
+installed phones keep serving the old version. If you add or
+remove any shipped file — data, photos, icons, css — regenerate the `SHELL`
+list in `sw.js` too. It precaches everything the app loads, and a missing
+entry breaks that file offline without any visible error. `tools/validate.mjs`
+cross-checks SHELL against what is actually on disk.
 
 GitHub Pages serves with `max-age=600`, so a just-pushed change can take up to
 10 minutes to reach a browser that has visited before. The service worker
@@ -40,8 +43,11 @@ on every back tap and a phone swipe-back bounced the user forward again.
   deep link opened cold goes to its parent screen rather than exiting the app.
 - Redirects for unknown routes use `goReplace()`, so back never lands on a
   dead URL.
-- In-page controls (filters, session length, ticking, swapping) re-render via
-  `render()` and must never touch history.
+- In-page controls must never push history. Filters and the session-length
+  selector re-render via `render()`; ticking, swapping and rebuilding call
+  `screenWorkout()` directly. Clearing a day is the one exception that touches
+  history at all — it calls `goReplace()`, because the workout it was showing
+  no longer exists.
 
 ## The user's standing preferences
 
@@ -86,8 +92,10 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
   primarily trains, and appears exactly once in the whole app. Shoulder-primary
   movements (shrugs, upright rows, carries) were explicitly evicted from Back —
   they belong to Shoulders when that group is built. Do not re-add them.
-- **At least 10 exercises per region**, mixing machine, cable, barbell,
-  dumbbell and bodyweight.
+- **At least 10 exercises per region**, drawing on machine, cable, barbell,
+  dumbbell and bodyweight. The enforced minimum is three distinct equipment
+  types per region; some regions honestly cannot offer all five (lower abs is
+  mostly bodyweight, calves have no bodyweight loading worth listing).
 - **No "How to do it" steps section.** Form cues only (3 short lines each).
 - **Gym-floor muscle names, never anatomical Latin.** "Lats", "Upper Back",
   "Lower Back", "Rear Delts" — see `MUSCLES` in `js/anatomy.js`. Applies to all
@@ -109,52 +117,91 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 index.html            app shell
 css/app.css           design tokens + all styling (light + dark)
 js/app.js             router, screens, demo player, workout generator, theme
-js/anatomy.js         posterior-view muscle map (SVG) + gym-name registry
-js/data/<group>.js    six groups, 217 exercises, 10+ per region:
+js/anatomy.js         front + back body maps (SVG) + the gym-name registry
+js/data/<group>.js    six groups, 219 exercises, 10+ per region:
                         back 45 (lats, upper back, lower back, rear delts)
                         chest 30 (mid, upper, lower)
                         shoulders 33 (front delts, side delts, traps)
                         arms 33 (biceps, triceps, forearms — fixed 4/3/2 plan)
                         legs 44 (quads, hamstrings, glutes, calves)
-                        core 32 (lower abs, upper abs, obliques)
-img/demo/             434 demonstration photos (public domain, 720px)
-sw.js                 service worker; SHELL precaches everything incl. photos
+                        core 34 (lower abs, upper abs, obliques)
+img/demo/             demonstration photos (public domain, 720px), <id>-0/-1.jpg
+manifest.webmanifest  PWA manifest (app name, icons, standalone display)
+icons/                generated PNG icons; regenerate via tools-make-icons.mjs
+tools/validate.mjs    curation-rule checker — run after any data change
+.claude/launch.json   dev-server config (`npx serve -l 4173 .`) for editor tooling
+sw.js                 service worker; SHELL precaches every shipped file
 tools-make-icons.mjs  regenerates the PNG icons from source
 ```
 
-## Regenerating or extending the data
+## Checking the data
 
-The curation tables and generator that produced every group live in this
-session's scratchpad pattern: a `gengroup.py` that validates each pick's
-dataset-declared primary muscle against its region, enforces app-wide
-uniqueness of both exercise ids and dataset entries, downloads the photo pair,
-and emits the data file. If you extend a group, replicate those checks — they
-are what enforce the user's curation rules mechanically. Resize new photos with
-`sips -s formatOptions normal --resampleWidth 720`.
+```bash
+node tools/validate.mjs
+```
+
+This mechanically enforces the owner's curation rules — one region per
+exercise, app-wide uniqueness of ids and names, 10+ per region, at least three
+equipment types per region, both demonstration photos present and named by
+convention, cues-not-howTo, every region named in `MUSCLES`, every shipped
+file present in the `sw.js` SHELL (and nothing listed that is missing), and
+the app name in sync across index.html, manifest and app.js. **Run it after any data change.** It exits non-zero on
+failure, so it is safe to wire into anything.
+
+The original generator that built the six groups was session-scoped and is not
+in this repo — `tools/validate.mjs` is the durable half. To extend the data,
+replicate the same checks: validate each pick's dataset-declared
+`primaryMuscles` against the region you are putting it in, confirm the id is
+not already used anywhere in `js/data/`, then download the photo pair. Resize
+new photos with `sips -s formatOptions normal --resampleWidth 720 <file> --out <file>`.
 
 ## Adding a muscle group
 
+Note the naming split before you start: **region KEYS are snake_case
+identifiers** (`lats`, `rhomboids`, `erectors`, `rear_delts`, `upper_chest`,
+`side_delts`, `quads`, `lower_abs`…) while the **gym-floor names users see**
+live in `MUSCLES[key].name` in `js/anatomy.js`. Keys are internal; only the
+display names must follow the no-Latin rule.
+
 1. Copy `js/data/back.js` to `js/data/<group>.js`; same exports (`group`,
-   `exercises`, `byId`, `demo`). `regions` in priority order.
-2. Pick exercises that exist in free-exercise-db and download their two frames
-   to `img/demo/<your-id>-{0,1}.jpg`:
-   `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<Their_Id>/{0,1}.jpg`
-   (browse `dist/exercises.json` in that repo to find ids).
-3. Add the region keys with gym-floor names to `MUSCLES` in `js/anatomy.js` and
-   draw their patches in `REGIONS`. The current map is a posterior view; chest,
-   arms and quads will need an anterior-view variant.
-4. Register it in `REGISTRY` at the top of `js/app.js` with `count`, `areas`
-   and `art` (they power the home tile without loading the data). Filter
-   candidates by the dataset's `primaryMuscles` — primary only — and prefer
-   `category === 'strength'` so stretches do not sneak in.
-5. Add its regions to `MUSCLES` and to the right view in `REGIONS` in
-   `js/anatomy.js` (front view for anterior muscles, back view for posterior).
-5. Add the new data file and photos to `SHELL` in `sw.js` and bump `CACHE`.
+   `exercises`, `byId`, `demo`). `regions` in priority order — the generator
+   walks it and it doubles as the execution order of a built day.
+2. Pick exercises from free-exercise-db, filtering by `primaryMuscles`
+   (primary only) and preferring `category === 'strength'` so stretches do not
+   sneak in. Browse `dist/exercises.json` in that repo for ids, then download
+   both frames to `img/demo/<your-id>-{0,1}.jpg` from
+   `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<Their_Id>/{0,1}.jpg`.
+3. Add each region key to `MUSCLES` in `js/anatomy.js` with its gym-floor
+   `name`, `short` and `blurb`, and draw its shapes in `REGIONS`. **Both views
+   already exist** — `REGIONS.front` (upper/mid/lower chest, front and side
+   delts, biceps, forearms, upper/lower abs, obliques, quads) and
+   `REGIONS.back` (lats, traps, rhomboids, erectors, rear delts, triceps,
+   glutes, hamstrings, calves). Put the region in whichever view the muscle is
+   visible from;
+   `createAnatomy()` picks the view from the primary region automatically.
+   Add the key to the matching `PAINT_ORDER` list too, or it will not render.
+4. Register the group in `REGISTRY` at the top of `js/app.js`. The full shape
+   is required — omit `ready` or `load` and the tile is dead:
+   ```js
+   { id: 'legs', name: 'Legs', ready: true, count: 44, areas: 4,
+     art: 'quads', load: () => import('./data/legs.js') }
+   ```
+   `count`, `areas` and `art` render the home tile without loading the data
+   module; keep `count` accurate when you add exercises.
+5. Add the data file and every new photo to `SHELL` in `sw.js`, and bump
+   `CACHE`. Missing entries break offline use silently.
+6. Run `node tools/validate.mjs` and fix anything it reports.
+
+Optionally give the group a fixed `plan` (an array of region keys, one per
+slot) if the owner has specified an exact make-up — Arms uses this for its
+4 biceps / 3 triceps / 2 forearms day. Plan groups hide the length selector.
 
 ## Testing and deploying
 
-Serve with `Cache-Control: no-store` during development or the browser holds
-ES modules. Deploys: push to main; GitHub Pages publishes from branch root.
+Use `npx serve -l 4173 .` (what `.claude/launch.json` configures) — it sends
+no-cache headers, so edits show up on reload. `python3 -m http.server` also
+works but caches ES modules, so you will chase phantom bugs after an edit
+unless you hard-reload every time. Deploys: push to main; GitHub Pages publishes from branch root.
 Pages serves with max-age=600, so a just-deployed change can take up to 10
 minutes to reach an uninstalled browser; the service worker precaches with
 `cache: 'reload'` so a CACHE bump always fetches fresh files.
