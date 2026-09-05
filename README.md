@@ -80,7 +80,7 @@ js/data/*.js          the six muscle groups (back, chest, shoulders, arms, legs,
 img/demo/             438 demonstration photos (public domain, free-exercise-db)
 icons/                app icons (PNG, generated)
 tools/validate.mjs    checks the data against the curation rules
-tools-make-icons.mjs  regenerates the PNG icons from source
+tools-make-icons.mjs  `node tools-make-icons.mjs icons` regenerates the PNGs
 .claude/launch.json   dev-server config for editor tooling
 ```
 

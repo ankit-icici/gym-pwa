@@ -1,7 +1,8 @@
-/* Service worker: precache the shell, then serve it cache-first so the app
-   opens instantly and works with no signal in the gym basement.
+/* Service worker: precache every shipped file, then serve from cache while
+   revalidating in the background — the app opens instantly and works with no
+   signal in the gym basement, and a deploy still lands on the next launch.
    Bump CACHE whenever you ship changes. */
-const CACHE = 'gym-v11';
+const CACHE = 'gym-v12';
 const SHELL = [
   './',
   './index.html',

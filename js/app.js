@@ -165,8 +165,11 @@ function buildWorkout(mod, filter, len = mod.group.regions.length) {
   // Target reps stand in for how heavy a movement is: presses and squats sit
   // at 5-10 reps, isolation and burnout work at 12+.
   const heaviness = (e) => {
+    // Bodyweight compounds are prescribed by effort, not reps. They are
+    // anchors — pull-ups and dips open a session, they do not close it.
+    if (/as many as you can/i.test(e.setsReps)) return 8;
     const m = /×\s*(\d+)/.exec(e.setsReps);
-    return m ? +m[1] : 13;   // "as many as you can" reads as a finisher
+    return m ? +m[1] : 13;   // anything else without a rep count is a finisher
   };
 
   const seq = regionSequence(group, len);
@@ -480,7 +483,7 @@ async function screenDetail(gid, eid) {
       </div>
 
       <dl class="facts">
-        <div class="fact"><dt>Equipment</dt><dd>${e.gear}</dd></div>
+        <div class="fact"><dt>Equipment</dt><dd>${e.equipment}</dd></div>
         <div class="fact"><dt>Sets &amp; reps</dt><dd>${e.setsReps}</dd></div>
         <div class="fact"><dt>Level</dt><dd>${e.level}</dd></div>
       </dl>
