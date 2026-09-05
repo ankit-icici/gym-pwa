@@ -5,8 +5,9 @@ import { createAnatomy, MUSCLES } from './anatomy.js';
    To add a group: write js/data/<id>.js in the shape of back.js, drop its
    demonstration photos in img/demo/, and flip `ready` here.
    ============================================================ */
+/* count/areas power the home tiles without loading the data module. */
 const REGISTRY = [
-  { id: 'back',      name: 'Back',      ready: true,  load: () => import('./data/back.js') },
+  { id: 'back',      name: 'Back',      ready: true,  count: 45, areas: 4, load: () => import('./data/back.js') },
   { id: 'chest',     name: 'Chest',     ready: false },
   { id: 'shoulders', name: 'Shoulders', ready: false },
   { id: 'arms',      name: 'Arms',      ready: false },
@@ -146,8 +147,14 @@ function buildWorkout(mod, filter, len = mod.group.regions.length) {
   const used = new Set();
   const out = [];
 
-  for (const region of group.regions.slice(0, len)) {
-    const inRegion = exercises.filter((e) => e.target === region);
+  // Walk the priority list, wrapping around when the session is longer than
+  // the region count — a 6-exercise day on 4 regions doubles up the top
+  // priorities (two lat movements, two rows), which is how a classic back
+  // day is actually programmed.
+  for (let k = 0; out.length < len && k < len * group.regions.length; k++) {
+    const region = group.regions[k % group.regions.length];
+    const inRegion = exercises.filter((e) => e.target === region && !used.has(e.id));
+    if (!inRegion.length) continue;
     // Prefer the chosen equipment, but never return a short workout because
     // of it — fall back to the whole region rather than dropping a slot.
     const eligible = inRegion.filter(matches);
@@ -159,9 +166,8 @@ function buildWorkout(mod, filter, len = mod.group.regions.length) {
 }
 
 const lengthFor = (mod) => {
-  const max = mod.group.regions.length;
-  const saved = store.get(`gym.len.${mod.group.id}`, max);
-  return Math.min(Math.max(saved, LENGTHS[0]), max);
+  const saved = store.get(`gym.len.${mod.group.id}`, 6);
+  return Math.min(Math.max(saved, LENGTHS[0]), LENGTHS[LENGTHS.length - 1]);
 };
 
 const workoutKey = (gid) => `gym.workout.${gid}`;
@@ -269,9 +275,9 @@ function screenHome() {
           <button class="tile ${g.ready ? 'is-live' : 'is-soon'}" ${g.ready ? `data-go="#/g/${g.id}"` : 'disabled'}>
             <div>
               <div class="tile-name">${g.name}</div>
-              <div class="tile-sub">${g.ready ? '24 exercises' : 'Coming soon'}</div>
+              <div class="tile-sub">${g.ready ? `${g.count} exercises` : 'Coming soon'}</div>
             </div>
-            ${g.ready ? `<span class="tag tag-muscle" style="align-self:flex-start">6 target areas</span>` : ''}
+            ${g.ready ? `<span class="tag tag-muscle" style="align-self:flex-start">${g.areas} target areas</span>` : ''}
           </button>`).join('')}
       </div>
 
@@ -349,7 +355,7 @@ async function screenGroup(gid) {
       <div class="dock-in">
         <div class="seg" role="group" aria-label="Exercises per session">
           <span class="seg-label">Exercises</span>
-          ${LENGTHS.filter((n) => n <= group.regions.length).map((n) => `
+          ${LENGTHS.map((n) => `
             <button class="seg-btn" data-len="${n}" aria-pressed="${n === len}">${n}</button>`).join('')}
         </div>
         <button class="btn" data-build="${gid}">${svgIcon('bolt')} Build ${group.name} Day</button>
@@ -426,7 +432,7 @@ async function screenWorkout(gid) {
         ${ringSvg(total ? done / total : 0)}
         <div class="progress-txt">
           <div class="t">${done === total ? 'Session complete. Well done.' : `${done} of ${total} finished`}</div>
-          <div class="s">One exercise per target area${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
+          <div class="s">Covers every target area${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
         </div>
       </div>
 

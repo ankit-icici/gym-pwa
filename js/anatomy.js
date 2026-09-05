@@ -46,6 +46,16 @@ export const MUSCLES = {
   erectors:   { name: 'Lower Back', short: 'Lower Back', blurb: 'The columns either side of the spine. Keeps you upright under load.' },
   teres:      { name: 'Upper Lats', short: 'Upper Lats', blurb: 'Just under the armpit. Close and high pulling angles hit it best.' },
   rear_delts: { name: 'Rear Delts', short: 'Rear Delts', blurb: 'The back of the shoulder. Small muscle, big posture payoff.' },
+
+  // Name-only entries for "also works" chips; these have no map region.
+  biceps:     { name: 'Biceps',     short: 'Biceps' },
+  forearms:   { name: 'Forearms',   short: 'Forearms' },
+  hamstrings: { name: 'Hamstrings', short: 'Hams' },
+  glutes:     { name: 'Glutes',     short: 'Glutes' },
+  abs:        { name: 'Abs',        short: 'Abs' },
+  quads:      { name: 'Quads',      short: 'Quads' },
+  triceps:    { name: 'Triceps',    short: 'Triceps' },
+  chest:      { name: 'Chest',      short: 'Chest' },
 };
 
 /** Order the regions paint in, so smaller regions land on top of bigger ones. */

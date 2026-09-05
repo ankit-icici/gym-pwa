@@ -24,12 +24,19 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 
 ## Product decisions that came from the user
 
+- **Primary muscle only, no duplicates.** An exercise lives under the muscle it
+  primarily trains, and appears exactly once in the whole app. Shoulder-primary
+  movements (shrugs, upright rows, carries) were explicitly evicted from Back —
+  they belong to Shoulders when that group is built. Do not re-add them.
+- **At least 10 exercises per region**, mixing machine, cable, barbell,
+  dumbbell and bodyweight.
 - **No "How to do it" steps section.** Form cues only (3 short lines each).
 - **Gym-floor muscle names, never anatomical Latin.** "Lats", "Upper Back",
-  "Traps", "Lower Back", "Upper Lats", "Rear Delts" — see `MUSCLES` in
-  `js/anatomy.js`. Applies to all user-visible text.
-- Session length is selectable (4/5/6); `group.regions` is priority order and
-  a shorter day drops the tail.
+  "Lower Back", "Rear Delts" — see `MUSCLES` in `js/anatomy.js`. Applies to all
+  user-visible text.
+- Session length is selectable (4/5/6). `group.regions` is priority order; the
+  generator wraps around it, so a 6-exercise day on 4 regions doubles up the
+  top priorities (two lat movements, two rows) like a real back day.
 
 ## Layout
 
@@ -38,7 +45,7 @@ index.html            app shell
 css/app.css           design tokens + all styling (light + dark)
 js/app.js             router, screens, demo player, workout generator, theme
 js/anatomy.js         posterior-view muscle map (SVG) + gym-name registry
-js/data/back.js       the Back group: 24 exercises, 6 regions, 4 per region
+js/data/back.js       the Back group: 45 exercises, 4 regions, 10+ per region
 img/demo/             48 demonstration photos (public domain)
 sw.js                 service worker; SHELL precaches everything incl. photos
 tools-make-icons.mjs  regenerates the PNG icons from source
@@ -55,7 +62,10 @@ tools-make-icons.mjs  regenerates the PNG icons from source
 3. Add the region keys with gym-floor names to `MUSCLES` in `js/anatomy.js` and
    draw their patches in `REGIONS`. The current map is a posterior view; chest,
    arms and quads will need an anterior-view variant.
-4. Flip `ready: true` in `REGISTRY` at the top of `js/app.js`.
+4. Flip `ready: true` in `REGISTRY` at the top of `js/app.js` and set that
+   entry's `count`/`areas` (they power the home tile without loading the data).
+   Filter candidates by the dataset's `primaryMuscles` — primary only — and
+   check `category === 'strength'` to avoid stretches sneaking in.
 5. Add the new data file and photos to `SHELL` in `sw.js` and bump `CACHE`.
 
 ## Testing and deploying

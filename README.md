@@ -4,8 +4,10 @@ An installable PWA that lists gym exercises by muscle group, animates every
 movement, names the muscle each one trains, and builds a six-exercise day for a
 muscle group in one tap.
 
-Currently shipping the **Back** group: 24 exercises across 6 target areas,
-each demonstrated with real photography.
+Currently shipping the **Back** group: 45 exercises across 4 target areas —
+Lats, Upper Back, Lower Back, Rear Delts — at least 10 per area, every one
+demonstrated with real photography. Each exercise appears only under the
+muscle it primarily trains.
 
 ## What it does
 
@@ -19,10 +21,10 @@ each demonstrated with real photography.
 - **Anatomy map.** Each exercise highlights the muscle it trains on a body map,
   named the way trainers say it — lats, upper back, traps, lower back, upper
   lats, rear delts — plus what it also works.
-- **Build a day.** One tap picks one exercise per target area, so a generated
-  session always covers the whole muscle group. Choose 4, 5 or 6 exercises;
-  shorter sessions trim the lowest-priority areas. Tick them off, swap any slot
-  for another exercise hitting the same muscle, or rebuild.
+- **Build a day.** One tap covers every target area, then doubles up the
+  priorities — a 6-exercise back day gets two lat movements and two rows, the
+  way a real session is programmed. Tick them off, swap any slot for another
+  exercise hitting the same muscle, or rebuild.
 - **Works offline, installs to the home screen, light and dark themes.**
 
 ## Running it locally
