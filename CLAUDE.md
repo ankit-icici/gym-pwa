@@ -1,8 +1,46 @@
 # Working on this repo
 
+## Orientation — read this first
+
+**The Forge** is an installable gym PWA. Everything you need is in this repo;
+there is nothing on the owner's machine and no external service to configure.
+
+| | |
+| --- | --- |
+| Live app | https://ankit-icici.github.io/gym-pwa/ |
+| Repo | https://github.com/ankit-icici/gym-pwa (public) |
+| Owner's GitHub | `ankit-icici` |
+| Hosting | GitHub Pages, served from `main` branch root. **No build step, no CI.** |
+| Deploy | `git push origin main`. Pages republishes in 1–3 minutes. That is the whole process. |
+| Stack | Plain HTML + CSS + ES modules. No dependencies, no package.json, no bundler. |
+
+After any change that ships files: bump `CACHE` in `sw.js` (e.g. `gym-v7` ->
+`gym-v8`), or installed phones keep serving the old version. If you add or
+remove files under `img/demo/` or `js/data/`, regenerate the `SHELL` list in
+`sw.js` too — it precaches every file for offline use.
+
+GitHub Pages serves with `max-age=600`, so a just-pushed change can take up to
+10 minutes to reach a browser that has visited before. The service worker
+precaches with `cache: 'reload'`, so a `CACHE` bump always pulls fresh files.
+
 The app is named **The Forge** (user-chosen). The name lives in index.html
 (title + apple-mobile-web-app-title), manifest.webmanifest (name/short_name)
 and the home screen's `setBar` call — keep them in sync if it ever changes.
+
+## The user's standing preferences
+
+These were established over several rounds of feedback. Treat them as
+constraints, not suggestions — each one replaced something they rejected.
+
+1. **Never store project files on their Mac.** Work in a scratch directory,
+   commit and push. The repo is the single source of truth so any Claude
+   account can pick the project up.
+2. **Demonstrations are real photographs, never procedurally drawn figures.**
+   They rejected hand-built SVG animation and a hand-posed 3D mannequin,
+   because hand-authored joint angles cannot guarantee correct exercise form.
+3. **Gym-floor muscle names, never anatomical Latin.**
+4. **No "How to do it" step lists.** Short form cues only.
+5. Curation rules for exercise data — see the section below.
 
 A static PWA with **no build step, no dependencies, no package.json** — edit the
 files and reload. Keep it that way; it is what makes the project portable

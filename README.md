@@ -1,5 +1,11 @@
 # The Forge — Train with intent
 
+**Live:** https://ankit-icici.github.io/gym-pwa/ · **Hosting:** GitHub Pages
+from `main` branch root — push to deploy, no build step, no CI.
+
+If you are an AI assistant picking this project up, read `CLAUDE.md` first.
+
+
 **The Forge** — an installable PWA that lists gym exercises by muscle group,
 demonstrates every movement with real photography, names the muscle each one
 trains, and builds an ordered training day in one tap.
