@@ -5,14 +5,14 @@ import { createAnatomy, MUSCLES } from './anatomy.js';
    To add a group: write js/data/<id>.js in the shape of back.js, drop its
    demonstration photos in img/demo/, and flip `ready` here.
    ============================================================ */
-/* count/areas power the home tiles without loading the data module. */
+/* count/areas/art power the home tiles without loading the data modules. */
 const REGISTRY = [
-  { id: 'back',      name: 'Back',      ready: true,  count: 45, areas: 4, load: () => import('./data/back.js') },
-  { id: 'chest',     name: 'Chest',     ready: false },
-  { id: 'shoulders', name: 'Shoulders', ready: false },
-  { id: 'arms',      name: 'Arms',      ready: false },
-  { id: 'legs',      name: 'Legs',      ready: false },
-  { id: 'core',      name: 'Core',      ready: false },
+  { id: 'back',      name: 'Back',      ready: true, count: 45, areas: 4, art: 'lats',        load: () => import('./data/back.js') },
+  { id: 'chest',     name: 'Chest',     ready: true, count: 30, areas: 3, art: 'mid_chest',   load: () => import('./data/chest.js') },
+  { id: 'shoulders', name: 'Shoulders', ready: true, count: 33, areas: 3, art: 'side_delts',  load: () => import('./data/shoulders.js') },
+  { id: 'arms',      name: 'Arms',      ready: true, count: 33, areas: 3, art: 'biceps',      load: () => import('./data/arms.js') },
+  { id: 'legs',      name: 'Legs',      ready: true, count: 44, areas: 4, art: 'quads',       load: () => import('./data/legs.js') },
+  { id: 'core',      name: 'Core',      ready: true, count: 32, areas: 3, art: 'upper_abs',   load: () => import('./data/core.js') },
 ];
 
 const EQUIPMENT_FILTERS = ['All', 'Machine', 'Cable', 'Barbell', 'Dumbbell', 'Bodyweight'];
@@ -141,34 +141,83 @@ function pick(list, avoid = new Set()) {
   return from[Math.floor(Math.random() * from.length)];
 }
 
+/*
+ * The region sequence IS the execution order of the day. Groups with an
+ * explicit `plan` (Arms: 4 biceps, 3 triceps, 2 forearms) use it verbatim;
+ * everyone else wraps around the priority list and then sorts, so a
+ * 6-exercise day on 4 regions comes out as two lat movements, two rows,
+ * lower back, rear delts — compounds first, isolation last.
+ */
+function regionSequence(group, len) {
+  if (group.plan) return [...group.plan];
+  const seq = [];
+  for (let k = 0; seq.length < len; k++) seq.push(group.regions[k % group.regions.length]);
+  seq.sort((a, b) => group.regions.indexOf(a) - group.regions.indexOf(b));
+  return seq;
+}
+
 function buildWorkout(mod, filter, len = mod.group.regions.length) {
   const { group, exercises } = mod;
   const matches = (e) => filter === 'All' || e.equipment === filter;
   const used = new Set();
   const out = [];
 
-  // Walk the priority list, wrapping around when the session is longer than
-  // the region count — a 6-exercise day on 4 regions doubles up the top
-  // priorities (two lat movements, two rows), which is how a classic back
-  // day is actually programmed.
-  for (let k = 0; out.length < len && k < len * group.regions.length; k++) {
-    const region = group.regions[k % group.regions.length];
+  // Target reps stand in for how heavy a movement is: presses and squats sit
+  // at 5-10 reps, isolation and burnout work at 12+.
+  const heaviness = (e) => {
+    const m = /×\s*(\d+)/.exec(e.setsReps);
+    return m ? +m[1] : 13;   // "as many as you can" reads as a finisher
+  };
+
+  const seq = regionSequence(group, len);
+  const seen = {};
+  for (const region of seq) {
     const inRegion = exercises.filter((e) => e.target === region && !used.has(e.id));
     if (!inRegion.length) continue;
     // Prefer the chosen equipment, but never return a short workout because
     // of it — fall back to the whole region rather than dropping a slot.
-    const eligible = inRegion.filter(matches);
-    const chosen = pick(eligible.length ? eligible : inRegion, used);
+    let eligible = inRegion.filter(matches);
+    if (!eligible.length) eligible = inRegion;
+    // A muscle's first exercise of the day should anchor it with something
+    // heavy, so the day never comes out as all flys and finishers.
+    if (!seen[region]) {
+      const heavy = eligible.filter((e) => heaviness(e) <= 10);
+      if (heavy.length) eligible = heavy;
+      seen[region] = true;
+    }
+    const chosen = pick(eligible, used);
     out.push(chosen.id);
     used.add(chosen.id);
+  }
+
+  // Within each muscle's slots, heavy low-rep work comes before high-rep
+  // isolation — close-grip bench before kickbacks, barbell curl before
+  // machine curl. The slot pattern itself (which muscle when) is untouched.
+  const byIdOf = (id) => exercises.find((e) => e.id === id);
+  for (const region of new Set(seq)) {
+    const slots = [];
+    out.forEach((id, i) => { if (byIdOf(id).target === region) slots.push(i); });
+    const ordered = slots.map((i) => out[i]).sort((a, b) => heaviness(byIdOf(a)) - heaviness(byIdOf(b)));
+    slots.forEach((i, k) => { out[i] = ordered[k]; });
   }
   return out;
 }
 
 const lengthFor = (mod) => {
+  if (mod.group.plan) return mod.group.plan.length;
   const saved = store.get(`gym.len.${mod.group.id}`, 6);
   return Math.min(Math.max(saved, LENGTHS[0]), LENGTHS[LENGTHS.length - 1]);
 };
+
+/** "4 biceps · 3 triceps · 2 forearms" — a plan summary for the dock. */
+function planLabel(group) {
+  const counts = [];
+  for (const r of group.plan) {
+    const hit = counts.find((c) => c.r === r);
+    if (hit) hit.n++; else counts.push({ r, n: 1 });
+  }
+  return counts.map((c) => `${c.n} ${(MUSCLES[c.r]?.short ?? c.r).toLowerCase()}`).join(' · ');
+}
 
 const workoutKey = (gid) => `gym.workout.${gid}`;
 const saveWorkout = (gid, w) => store.set(workoutKey(gid), w);
@@ -250,7 +299,7 @@ function screenHome() {
       <header class="hero">
         <div class="eyebrow">Train with intent</div>
         <h1>Pick a muscle group.<br>Get your day's exercises.</h1>
-        <p>Real demonstrations for every movement, and every exercise tells you exactly which muscle it hits.</p>
+        <p>Real demonstrations for every movement, in the order you should do them, with the muscle each one hits.</p>
       </header>
 
       ${saved.length ? `
@@ -284,13 +333,14 @@ function screenHome() {
       <div id="install-slot"></div>
     </div>`;
 
-  const backTile = root.querySelector('.tile.is-live');
-  if (backTile) {
+  root.querySelectorAll('.tile.is-live').forEach((tile, i) => {
+    const g = REGISTRY.filter((x) => x.ready)[i];
+    if (!g?.art) return;
     const art = document.createElement('div');
     art.className = 'tile-art';
-    art.appendChild(createAnatomy('lats', ['rhomboids', 'traps']));
-    backTile.appendChild(art);
-  }
+    art.appendChild(createAnatomy(g.art));
+    tile.appendChild(art);
+  });
   renderInstallHint();
 }
 
@@ -353,11 +403,13 @@ async function screenGroup(gid) {
     </div>
     <div class="dock">
       <div class="dock-in">
-        <div class="seg" role="group" aria-label="Exercises per session">
-          <span class="seg-label">Exercises</span>
-          ${LENGTHS.map((n) => `
-            <button class="seg-btn" data-len="${n}" aria-pressed="${n === len}">${n}</button>`).join('')}
-        </div>
+        ${group.plan
+          ? `<div class="seg"><span class="seg-label">${planLabel(group)}</span></div>`
+          : `<div class="seg" role="group" aria-label="Exercises per session">
+              <span class="seg-label">Exercises</span>
+              ${LENGTHS.map((n) => `
+                <button class="seg-btn" data-len="${n}" aria-pressed="${n === len}">${n}</button>`).join('')}
+            </div>`}
         <button class="btn" data-build="${gid}">${svgIcon('bolt')} Build ${group.name} Day</button>
       </div>
     </div>`;
@@ -432,7 +484,7 @@ async function screenWorkout(gid) {
         ${ringSvg(total ? done / total : 0)}
         <div class="progress-txt">
           <div class="t">${done === total ? 'Session complete. Well done.' : `${done} of ${total} finished`}</div>
-          <div class="s">Covers every target area${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
+          <div class="s">Do them in this order, top to bottom${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
         </div>
       </div>
 
@@ -441,7 +493,7 @@ async function screenWorkout(gid) {
           const e = byId[it.id];
           return `<div class="slot ${it.done ? 'is-done' : ''}">
             <button class="slot-open" data-go="#/g/${gid}/e/${e.id}">
-              <span class="thumb"><img class="thumb-img" src="${demo(e.id, 1)}" alt="" loading="lazy" decoding="async"></span>
+              <span class="thumb"><span class="slot-num">${i + 1}</span><img class="thumb-img" src="${demo(e.id, 1)}" alt="" loading="lazy" decoding="async"></span>
               <span class="slot-body">
                 <span class="slot-name">${e.name}</span>
                 <span class="slot-meta">

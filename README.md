@@ -4,10 +4,18 @@ An installable PWA that lists gym exercises by muscle group, animates every
 movement, names the muscle each one trains, and builds a six-exercise day for a
 muscle group in one tap.
 
-Currently shipping the **Back** group: 45 exercises across 4 target areas —
-Lats, Upper Back, Lower Back, Rear Delts — at least 10 per area, every one
-demonstrated with real photography. Each exercise appears only under the
-muscle it primarily trains.
+All six muscle groups are live — **217 exercises**, at least 10 per target
+area, every one demonstrated with real photography and placed only under the
+muscle it primarily trains:
+
+| Group | Areas | Exercises |
+| --- | --- | --- |
+| Back | Lats · Upper Back · Lower Back · Rear Delts | 45 |
+| Chest | Mid · Upper · Lower | 30 |
+| Shoulders | Front Delts · Side Delts · Traps | 33 |
+| Arms | Biceps · Triceps · Forearms | 33 |
+| Legs | Quads · Hamstrings · Glutes · Calves | 44 |
+| Core | Lower Abs · Upper Abs · Obliques | 32 |
 
 ## What it does
 
@@ -21,10 +29,12 @@ muscle it primarily trains.
 - **Anatomy map.** Each exercise highlights the muscle it trains on a body map,
   named the way trainers say it — lats, upper back, traps, lower back, upper
   lats, rear delts — plus what it also works.
-- **Build a day.** One tap covers every target area, then doubles up the
-  priorities — a 6-exercise back day gets two lat movements and two rows, the
-  way a real session is programmed. Tick them off, swap any slot for another
-  exercise hitting the same muscle, or rebuild.
+- **Build a day, in order.** One tap covers every target area and numbers the
+  exercises in the sequence to perform them: heavy compounds anchor each
+  muscle, isolation follows, and a 6-exercise back day gets two lat movements
+  and two rows the way a real session is programmed. Arm day follows a fixed
+  plan — 4 biceps, 3 triceps, 2 forearms, alternating. Tick them off, swap any
+  slot within the same muscle, or rebuild.
 - **Works offline, installs to the home screen, light and dark themes.**
 
 ## Running it locally

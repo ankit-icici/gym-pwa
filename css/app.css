@@ -207,6 +207,13 @@ main { padding: 8px 0 168px; }
   background: var(--surface-2); overflow: hidden; position: relative;
 }
 .thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slot-num {
+  position: absolute; left: 5px; top: 5px; z-index: 2;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 11.5px; font-weight: 700;
+  background: var(--accent); color: #fff;
+}
 
 /* Chips that label the target muscle and the kit you need */
 .tag {

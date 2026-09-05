@@ -37,6 +37,13 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 - Session length is selectable (4/5/6). `group.regions` is priority order; the
   generator wraps around it, so a 6-exercise day on 4 regions doubles up the
   top priorities (two lat movements, two rows) like a real back day.
+- **A built day is an ordered program, not a list.** Slots are numbered and the
+  region sequence is the execution order. Arms has a fixed `group.plan` from
+  the user — 4 biceps, 3 triceps, 2 forearms, alternating bi/tri with grip work
+  last — and plan groups hide the length selector. Each muscle's first slot
+  prefers a heavy movement (target reps <= 10) so a day is always anchored by a
+  press/squat/row, and within a muscle's slots low-rep work sorts before
+  high-rep isolation.
 
 ## Layout
 
@@ -45,11 +52,27 @@ index.html            app shell
 css/app.css           design tokens + all styling (light + dark)
 js/app.js             router, screens, demo player, workout generator, theme
 js/anatomy.js         posterior-view muscle map (SVG) + gym-name registry
-js/data/back.js       the Back group: 45 exercises, 4 regions, 10+ per region
-img/demo/             48 demonstration photos (public domain)
+js/data/<group>.js    six groups, 217 exercises, 10+ per region:
+                        back 45 (lats, upper back, lower back, rear delts)
+                        chest 30 (mid, upper, lower)
+                        shoulders 33 (front delts, side delts, traps)
+                        arms 33 (biceps, triceps, forearms — fixed 4/3/2 plan)
+                        legs 44 (quads, hamstrings, glutes, calves)
+                        core 32 (lower abs, upper abs, obliques)
+img/demo/             434 demonstration photos (public domain, 720px)
 sw.js                 service worker; SHELL precaches everything incl. photos
 tools-make-icons.mjs  regenerates the PNG icons from source
 ```
+
+## Regenerating or extending the data
+
+The curation tables and generator that produced every group live in this
+session's scratchpad pattern: a `gengroup.py` that validates each pick's
+dataset-declared primary muscle against its region, enforces app-wide
+uniqueness of both exercise ids and dataset entries, downloads the photo pair,
+and emits the data file. If you extend a group, replicate those checks — they
+are what enforce the user's curation rules mechanically. Resize new photos with
+`sips -s formatOptions normal --resampleWidth 720`.
 
 ## Adding a muscle group
 
@@ -62,10 +85,12 @@ tools-make-icons.mjs  regenerates the PNG icons from source
 3. Add the region keys with gym-floor names to `MUSCLES` in `js/anatomy.js` and
    draw their patches in `REGIONS`. The current map is a posterior view; chest,
    arms and quads will need an anterior-view variant.
-4. Flip `ready: true` in `REGISTRY` at the top of `js/app.js` and set that
-   entry's `count`/`areas` (they power the home tile without loading the data).
-   Filter candidates by the dataset's `primaryMuscles` — primary only — and
-   check `category === 'strength'` to avoid stretches sneaking in.
+4. Register it in `REGISTRY` at the top of `js/app.js` with `count`, `areas`
+   and `art` (they power the home tile without loading the data). Filter
+   candidates by the dataset's `primaryMuscles` — primary only — and prefer
+   `category === 'strength'` so stretches do not sneak in.
+5. Add its regions to `MUSCLES` and to the right view in `REGIONS` in
+   `js/anatomy.js` (front view for anterior muscles, back view for posterior).
 5. Add the new data file and photos to `SHELL` in `sw.js` and bump `CACHE`.
 
 ## Testing and deploying
