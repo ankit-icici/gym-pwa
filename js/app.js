@@ -259,13 +259,51 @@ function parseRoute() {
   return { name: 'home' };
 }
 
-const go = (hash) => { location.hash = hash; };
+/*
+ * Navigation.
+ *
+ * Every forward move PUSHES a history entry and every back move POPS one, so
+ * the browser's own back — the swipe gesture on a phone, the system back
+ * button on Android — always lands on the screen you actually came from.
+ *
+ * Assigning location.hash for "back" was the bug this replaces: it pushed a
+ * new entry, so the stack grew on every back tap and a swipe bounced you
+ * forward again.
+ *
+ * `depth` counts how many screens deep this history entry is, which is how we
+ * tell "the user navigated here" from "the user opened a link straight to
+ * here" — going back out of the latter would leave the app entirely.
+ */
+const depth = () => history.state?.depth ?? 0;
+
+function go(hash) {
+  if (hash === location.hash) return;
+  history.pushState({ depth: depth() + 1 }, '', hash);
+  render();
+}
+
+/** Replace the current entry — for redirects that should not be revisitable. */
+function goReplace(hash) {
+  history.replaceState({ depth: depth() }, '', hash);
+  render();
+}
+
+/**
+ * Step back one screen. Uses real history when we have some, so the user
+ * returns to wherever they actually came from (an exercise opened from a
+ * workout goes back to that workout, not to the exercise list). Falls back to
+ * the parent screen when this is the first page of the session.
+ */
+function goBack(parentHash) {
+  if (depth() > 0) history.back();
+  else goReplace(parentHash);
+}
 
 function setBar(title, { back = null } = {}) {
   barEl.innerHTML = `
     <div class="bar-in">
       ${back
-        ? `<button class="icon-btn" data-go="${back}" aria-label="Go back">${svgIcon('back')}</button>`
+        ? `<button class="icon-btn" data-back="${back}" aria-label="Go back">${svgIcon('back')}</button>`
         : `<span style="width:6px"></span>`}
       <h1 class="bar-title">${title}</h1>
       <button class="icon-btn" data-theme-toggle aria-label="Theme: ${theme}. Tap to change.">
@@ -362,7 +400,7 @@ function exerciseCard(gid, e, demo) {
 
 async function screenGroup(gid) {
   const mod = await loadGroup(gid);
-  if (!mod) return screenHome();
+  if (!mod) return goReplace('#/');
   const { group, exercises, demo } = mod;
   setBar(group.name, { back: '#/' });
 
@@ -420,7 +458,7 @@ async function screenGroup(gid) {
 async function screenDetail(gid, eid) {
   const mod = await loadGroup(gid);
   const e = mod?.byId[eid];
-  if (!e) return screenGroup(gid);
+  if (!e) return goReplace(`#/g/${gid}`);
   const { demo } = mod;
   setBar(e.name, { back: `#/g/${gid}` });
   const m = MUSCLES[e.target];
@@ -461,7 +499,7 @@ async function screenDetail(gid, eid) {
 
 async function screenWorkout(gid) {
   const mod = await loadGroup(gid);
-  if (!mod) return screenHome();
+  if (!mod) return goReplace('#/');
   const { group, byId, demo } = mod;
   setBar(`${group.name} Day`, { back: `#/g/${gid}` });
 
@@ -559,6 +597,9 @@ function renderInstallHint() {
    Global event wiring
    ============================================================ */
 document.addEventListener('click', async (ev) => {
+  const back = ev.target.closest('[data-back]');
+  if (back) { goBack(back.dataset.back); return; }
+
   const nav = ev.target.closest('[data-go]');
   if (nav) { go(nav.dataset.go); return; }
 
@@ -634,7 +675,9 @@ document.addEventListener('click', async (ev) => {
   const clear = ev.target.closest('[data-clear]');
   if (clear) {
     try { localStorage.removeItem(workoutKey(clear.dataset.clear)); } catch { /* ignore */ }
-    go(`#/g/${clear.dataset.clear}`);
+    // The workout no longer exists, so leaving its entry in history would let
+    // back land on a dead screen. Replace it rather than pushing.
+    goReplace(`#/g/${clear.dataset.clear}`);
     return;
   }
 
@@ -668,7 +711,11 @@ async function render() {
   if (r.name !== 'workout') scrollTo({ top: 0 });
 }
 
-addEventListener('hashchange', render);
+// pushState does not fire hashchange, so popstate is the single source of
+// truth for back/forward. Seed the first entry with a depth so a fresh load
+// (or a deep link) knows it has nothing to go back to.
+addEventListener('popstate', render);
+if (!history.state) history.replaceState({ depth: 0 }, '', location.hash || '#/');
 render();
 
 if ('serviceWorker' in navigator) {

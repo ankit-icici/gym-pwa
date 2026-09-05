@@ -1,7 +1,7 @@
 /* Service worker: precache the shell, then serve it cache-first so the app
    opens instantly and works with no signal in the gym basement.
    Bump CACHE whenever you ship changes. */
-const CACHE = 'gym-v9';
+const CACHE = 'gym-v10';
 const SHELL = [
   './',
   './index.html',

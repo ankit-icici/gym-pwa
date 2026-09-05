@@ -27,6 +27,22 @@ The app is named **The Forge** (user-chosen). The name lives in index.html
 (title + apple-mobile-web-app-title), manifest.webmanifest (name/short_name)
 and the home screen's `setBar` call — keep them in sync if it ever changes.
 
+## Navigation
+
+Routing is hash-based but driven by `history.pushState` / `popstate`, never by
+assigning `location.hash`. That assignment was a real bug: the in-app back
+arrow pushed a *new* entry instead of popping one, so the history stack grew
+on every back tap and a phone swipe-back bounced the user forward again.
+
+- Forward moves use `go()` (pushes an entry).
+- Back moves use `goBack(parentHash)`, which calls `history.back()` when
+  `history.state.depth > 0` and otherwise replaces with the parent — so a
+  deep link opened cold goes to its parent screen rather than exiting the app.
+- Redirects for unknown routes use `goReplace()`, so back never lands on a
+  dead URL.
+- In-page controls (filters, session length, ticking, swapping) re-render via
+  `render()` and must never touch history.
+
 ## The user's standing preferences
 
 These were established over several rounds of feedback. Treat them as
