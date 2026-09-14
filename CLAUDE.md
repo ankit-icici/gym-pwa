@@ -107,10 +107,59 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 - **A built day is an ordered program, not a list.** Slots are numbered and the
   region sequence is the execution order. Arms has a fixed `group.plan` from
   the user — 4 biceps, 3 triceps, 2 forearms, alternating bi/tri with grip work
-  last — and plan groups hide the length selector. Each muscle's first slot
-  prefers a heavy movement (target reps <= 10) so a day is always anchored by a
-  press/squat/row, and within a muscle's slots low-rep work sorts before
-  high-rep isolation.
+  last — and plan groups hide the length selector.
+- **A built day should read like a trainer wrote it** — see "How a day is
+  built" below. This replaced a generator that picked at random inside each
+  muscle, which could hand you three pulldown variations, four machines in a
+  row, or a back day that put the biceps under all six exercises.
+
+## How a day is built
+
+`buildWorkout` in `js/app.js`. The slot plan is unchanged — `regionSequence`
+still decides *which muscle* each numbered slot trains, and Arms still uses its
+fixed `plan`. What changed is how the exercise filling each slot is chosen.
+
+Each candidate is scored against the day assembled so far, and the pick is
+sampled from the ones scoring within a margin of the best rather than always
+taking the maximum. That distinction matters: taking the maximum made every
+Rebuild return near enough the same day, because the score gaps are wider than
+any noise small enough to leave the structure intact.
+
+The terms, each one a question a trainer would ask out loud:
+
+- **Compound or isolation, by position.** Every muscle opens with a compound
+  and its second slot is accessory work — squat then leg extension, bench then
+  fly. Muscles that are not compound-led skip that: `leadsWithCompound()` calls
+  a muscle compound-led when compounds are at least a third of its exercises,
+  which is what stops the builder opening side delts with an upright row when
+  the lateral raise is the movement, or prescribing a farmer's carry before
+  wrist curls. It reads that from the data, so it follows the data.
+- **Secondary-muscle spread.** Repeating a tag already loaded by the day costs
+  points, capped so it can never outweigh the slot's role. Six back exercises
+  that all pull through the biceps is a biceps day with extra steps.
+- **Equipment spread** — not four machines, and not four barbells either.
+- **Movement family** — not three pulldowns. Families are derived from the id
+  by `familyOf()`, including the angle, because flat, incline and decline
+  pressing are three different exercises and a chest day wants all three.
+- **Rep-range arc** — heavy early, higher reps late, and never all of one.
+- **Level** — the hardest movements in the book do not stack.
+
+Only `pattern` is explicit data; the families and rep buckets are derived. That
+split is deliberate. A family miss costs a little variety and never
+correctness, so a heuristic is fine there. `pattern` decides what anchors a
+muscle, and no heuristic gets it right — `cable-rear-lateral` lists three
+secondary muscles and is still a raise, `hip-thrust` lists two and anchors a
+glute day — so it is authored per exercise and `tools/validate.mjs` enforces it.
+
+The swap button uses the same scorer (`slotAlternatives`), ranking the muscle's
+other exercises against the rest of the day and cycling through them, so a swap
+keeps the day balanced and keeps the slot's role: swapping the opening squat
+offers another compound, not a leg extension.
+
+Both rules degrade on their own rather than needing special cases. A muscle
+with no compound at all (biceps, calves, abs) never asks for one; a muscle with
+no isolation at all (every rhomboid movement is a row) lets the remaining terms
+pick the most *different* row instead.
 
 ## Layout
 
@@ -145,7 +194,8 @@ node tools/validate.mjs
 This mechanically enforces the owner's curation rules — one region per
 exercise, app-wide uniqueness of ids and names, 10+ per region, at least three
 equipment types per region, `equipment` values inside the filter enum, both
-demonstration photos present and named by convention, cues-not-howTo, every
+demonstration photos present and named by convention, `pattern` present and
+one of compound/isolation, cues-not-howTo, every
 region named in `MUSCLES`, `PAINT_ORDER` and `REGIONS` agreeing, every field
 `js/app.js` renders actually existing on the data, every shipped file present
 in the `sw.js` SHELL, and the app name in sync across index.html, manifest and
@@ -177,8 +227,12 @@ display names must follow the no-Latin rule.
    prints "undefined" there. `regions` goes in priority order; it doubles as
    the execution order of a built day.
 
-   Each exercise needs `id`, `name`, `equipment`, `target`, `secondary`,
-   `level`, `setsReps` and `cues`. **`equipment` must be exactly one of
+   Each exercise needs `id`, `name`, `equipment`, `target`, `pattern`,
+   `secondary`, `level`, `setsReps` and `cues`. **`pattern` must be exactly
+   `compound` or `isolation`** — multi-joint or single-joint, judged from the
+   movement. The day builder is built on it (see "How a day is built"), a wrong
+   value silently produces a bad workout, and nothing derives it for you.
+   **`equipment` must be exactly one of
    `Machine`, `Cable`, `Barbell`, `Dumbbell`, `Bodyweight`** — these are the
    filter chips in `js/app.js`, and any other value makes the exercise
    unreachable by every filter with nothing in the UI to hint at why. The

@@ -18,6 +18,8 @@ const MIN_EQUIPMENT_TYPES = 3;
 /* Must match EQUIPMENT_FILTERS in js/app.js — anything else is unreachable by
    every filter chip, and nothing in the UI would tell you. */
 const EQUIPMENT = ['Machine', 'Cable', 'Barbell', 'Dumbbell', 'Bodyweight'];
+/* Must match what the day builder in js/app.js reasons about. */
+const PATTERNS = ['compound', 'isolation'];
 
 const problems = [];
 const note = (msg) => problems.push(msg);
@@ -67,6 +69,20 @@ for (const file of groupFiles) {
     }
     if (e.equipment && !EQUIPMENT.includes(e.equipment)) {
       note(`${gid}/${e.id}: equipment "${e.equipment}" is not one of ${EQUIPMENT.join(', ')} — no filter would ever show it`);
+    }
+    /*
+     * Rule: every exercise declares whether it is compound or isolation.
+     *
+     * The day builder is built on this — which movement anchors a muscle,
+     * which follows it, and how much of a session is heavy work. It is
+     * deliberately explicit data rather than something derived, because no
+     * heuristic gets it right: `cable-rear-lateral` lists three secondary
+     * muscles and is still a raise, `hip-thrust` lists two and anchors a
+     * glute day. A wrong or missing value silently produces a bad workout,
+     * which is the one failure the user would have to catch by eye.
+     */
+    if (!PATTERNS.includes(e.pattern)) {
+      note(`${gid}/${e.id}: pattern is ${JSON.stringify(e.pattern)} — must be one of ${PATTERNS.join(', ')}`);
     }
     if (e.secondary?.includes(e.target)) note(`${gid}/${e.id}: lists its own target as secondary`);
   }

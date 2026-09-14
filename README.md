@@ -35,12 +35,17 @@ muscle it primarily trains:
 - **Anatomy map.** Each exercise highlights the muscle it trains on a body map
   — front view for chest, biceps, quads and abs, back view for lats, glutes and
   hamstrings — plus what it also works.
-- **Build a day, in order.** One tap covers every target area and numbers the
-  exercises in the sequence to perform them: heavy compounds anchor each
-  muscle, isolation follows, and a 6-exercise back day gets two lat movements
-  and two rows the way a real session is programmed. Arm day follows a fixed
-  plan — 4 biceps, 3 triceps, 2 forearms, alternating. Tick them off, swap any
-  slot within the same muscle, or rebuild.
+- **Build a day, the way a trainer would.** One tap covers every target area
+  and numbers the exercises in the sequence to perform them. Each muscle opens
+  with a compound and follows it with accessory work — squat then leg
+  extension, bench then fly — unless it is a muscle trained by isolation in the
+  first place, where the lateral raise leads and no upright row is forced in.
+  The day is then balanced across equipment, rep ranges and the secondary
+  muscles every movement borrows, so it never comes out as three pulldowns,
+  four machines in a row, or a back day that puts the biceps under all six
+  exercises. Arm day follows a fixed plan — 4 biceps, 3 triceps, 2 forearms,
+  alternating. Tick them off, swap any slot for another movement that fits it,
+  or rebuild for a genuinely different day.
 - **Works offline, installs to the home screen, light and dark themes.**
 
 ## Running it locally

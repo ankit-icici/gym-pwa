@@ -131,14 +131,175 @@ const demoMarkup = (demo, e, { label = true } = {}) => `
   ${label ? '<div class="pose-label">Start</div>' : ''}`;
 
 /* ============================================================
-   Workout generation.
-   One exercise per target region, so a generated day always covers
-   the whole muscle group instead of hammering one area six times.
+   Workout generation — programmed the way a trainer would build it.
+
+   A day is not a random draw from the muscle group. It opens each muscle with
+   a compound, adds isolation once that compound has covered the muscle, and
+   spreads the load across equipment, rep ranges and the secondary muscles
+   every movement borrows — so a back day does not end up putting the biceps
+   under all six exercises, and a chest day is not three variations of a
+   pressing motion plus a fly.
    ============================================================ */
-function pick(list, avoid = new Set()) {
-  const fresh = list.filter((e) => !avoid.has(e.id));
-  const from = fresh.length ? fresh : list;
-  return from[Math.floor(Math.random() * from.length)];
+
+/*
+ * Movement families, derived from the id.
+ *
+ * This is the only heuristic left in the generator, and that is deliberate:
+ * families exist to stop three near-identical movements landing in one day,
+ * so a miss costs a little variety and never correctness. `pattern` — the
+ * judgement that has to be right — is explicit on the data instead.
+ *
+ * Order matters, first match wins: the specific entries come before the
+ * generic ones that would otherwise swallow them (leg-extension before
+ * extension, calf-raise before raise, dumbbell-kickback before kickback).
+ */
+const FAMILIES = [
+  [/leg-extension/, 'knee-extension'],
+  [/leg-curl|nordic-curl/, 'knee-flexion'],
+  [/calf-raise/, 'calf'],
+  [/back-extension|superman/, 'spinal-extension'],
+  [/dumbbell-kickback/, 'elbow-extension'],
+  [/wrist|finger-curls|plate-pinch|roller/, 'grip'],
+  [/carry/, 'carry'],
+  [/shrug/, 'shrug'],
+  [/upright/, 'upright-row'],
+  [/face-pull|rear-delt|rear-lateral|reverse-fly|reverse-machine-fly/, 'rear-delt'],
+  [/straight-arm|pullover/, 'shoulder-extension'],
+  [/pulldown|pull-up|chin-up/, 'vertical-pull'],
+  [/row/, 'horizontal-row'],
+  [/deadlift|rack-pull|good-morning/, 'hinge'],
+  [/glute-bridge|hip-thrust|kickback|pull-through|kneeling-squat/, 'hip-extension'],
+  [/squat|lunge|split-squat|step-up|leg-press/, 'squat'],
+  [/dip|push-up/, 'dip-pushup'],
+  [/plank|pallof|rollout|hold/, 'brace'],
+  [/shoulder-press|overhead-barbell-press|seated-barbell-press|(seated|standing)-dumbbell-press|push-press|arnold-press|handstand/, 'vertical-press'],
+  [/press/, 'horizontal-press'],
+  [/fly|crossover|pec-deck/, 'fly'],
+  [/pushdown|overhead-(rope|barbell|dumbbell)-extension|skullcrusher|lying-dumbbell-extension/, 'elbow-extension'],
+  [/curl/, 'elbow-flexion'],
+  [/crunch|sit-up/, 'trunk-flexion'],
+  [/leg-raise|pull-in|pike|jackknife|hip-raise|knee-raise|flutter/, 'hip-flexion'],
+  [/twist|woodchop|bicycle|side-bend|oblique|cross-body/, 'rotation'],
+  [/raise|lateral/, 'raise'],
+];
+const familyOf = (e) => {
+  const base = FAMILIES.find(([re]) => re.test(e.id))?.[1] ?? e.id;
+  // Angle is part of the movement. Flat, incline and decline pressing are
+  // three different exercises to a trainer, and a chest day wants all three —
+  // without this they collapse into one family and crowd each other out.
+  const angle = /incline/.test(e.id) ? 'incline-' : /decline/.test(e.id) ? 'decline-' : '';
+  return angle + base;
+};
+
+/*
+ * Rep-range bucket. A session should carry one heavy anchor, moderate work in
+ * the middle and something higher-rep at the end — not six sets of twelve.
+ * Prescriptions by effort ("as many as you can") are anchors; prescriptions by
+ * time or distance (planks, carries) are finishers.
+ */
+function repBucket(e) {
+  if (/as many as you can/i.test(e.setsReps)) return 'heavy';
+  if (/\d\s*(s|m)\b|holds|rolls/.test(e.setsReps)) return 'high';
+  const m = /×\s*(\d+)/.exec(e.setsReps);
+  if (!m) return 'high';
+  return m[1] <= 8 ? 'heavy' : m[1] <= 10 ? 'moderate' : 'high';
+}
+
+/** What a part-built day has already spent, by every axis the scorer weighs. */
+function tallyOf(picked) {
+  const t = { secondary: new Map(), equipment: new Map(), family: new Map(), bucket: new Map(), advanced: 0 };
+  const bump = (map, key) => map.set(key, (map.get(key) ?? 0) + 1);
+  for (const e of picked) {
+    for (const tag of e.secondary) bump(t.secondary, tag);
+    bump(t.equipment, e.equipment);
+    bump(t.family, familyOf(e));
+    bump(t.bucket, repBucket(e));
+    if (e.level === 'Advanced') t.advanced++;
+  }
+  return t;
+}
+
+/*
+ * Score one candidate for one slot against the day so far. Every term is a
+ * question a trainer would ask out loud: is this the right *kind* of movement
+ * for this point in the session, does it hammer something the day has already
+ * hammered, is this the fourth machine in a row, is it the third variation of
+ * the same motion?
+ */
+function scoreCandidate(e, { slot, len, wantCompound, tally }) {
+  let s = 0;
+
+  // The right kind of movement. Compounds open a muscle and open the day;
+  // isolation earns its place once a compound has already covered the muscle.
+  s += (e.pattern === 'compound') === wantCompound ? 30 : -18;
+  if (slot === 0 && e.pattern === 'compound') s += 20;
+
+  // Spread the borrowed work. Six back exercises that all pull through the
+  // biceps is a biceps day with extra steps.
+  let overlap = 0;
+  for (const tag of e.secondary) overlap += tally.secondary.get(tag) ?? 0;
+  s -= Math.min(overlap * 8, 24);
+
+  // Not four machines — and not four barbells either.
+  s -= 7 * (tally.equipment.get(e.equipment) ?? 0);
+
+  // Not three pulldowns.
+  s -= 16 * (tally.family.get(familyOf(e)) ?? 0);
+
+  // Heavy early, higher reps late, and never all of one.
+  const bucket = repBucket(e);
+  s -= 6 * (tally.bucket.get(bucket) ?? 0);
+  const pos = len > 1 ? slot / (len - 1) : 0;
+  if (bucket === (pos < 0.34 ? 'heavy' : pos < 0.67 ? 'moderate' : 'high')) s += 8;
+
+  // Don't stack the hardest movements in the book on top of each other.
+  if (e.level === 'Advanced') s -= 6 * tally.advanced;
+
+  return s;
+}
+
+/*
+ * Pick among the candidates that score near the top, weighted toward the
+ * better ones, instead of always taking the single best.
+ *
+ * Taking the maximum made every Rebuild return almost the same day: the score
+ * gaps are wide enough that noise small enough to preserve the structure was
+ * never enough to change the winner. Shortlisting instead keeps the structure
+ * absolutely — nothing outside the margin can ever be chosen — while giving
+ * the day real variety inside it.
+ */
+function chooseScored(scored) {
+  const MARGIN = 14;
+  const floor = Math.max(...scored.map(([, s]) => s)) - MARGIN;
+  const shortlist = scored.filter(([, s]) => s >= floor);
+  const weight = ([, s]) => s - floor + 1;
+  let r = Math.random() * shortlist.reduce((sum, c) => sum + weight(c), 0);
+  for (const c of shortlist) {
+    r -= weight(c);
+    if (r <= 0) return c[0];
+  }
+  return shortlist[shortlist.length - 1][0];
+}
+
+/*
+ * Does this muscle get led by compounds at all?
+ *
+ * Some muscles are: you open quads with a squat and chest with a press. Others
+ * are genuinely isolation muscles — nobody opens side delts with an upright row
+ * when the lateral raise is the movement, traps are shrugs, and forearms are
+ * wrist curls rather than carries. Forcing a compound there produces exactly
+ * the odd prescriptions a trainer would not write.
+ *
+ * The split follows the data rather than a hand-kept list: a muscle leads with
+ * a compound when compounds are at least a third of what it has. Measured over
+ * the whole muscle, not the filtered pool, so picking an equipment chip never
+ * changes the character of the muscle.
+ */
+const COMPOUND_LED = 1 / 3;
+function leadsWithCompound(region, exercises) {
+  const inRegion = exercises.filter((e) => e.target === region);
+  if (!inRegion.length) return false;
+  return inRegion.filter((e) => e.pattern === 'compound').length / inRegion.length >= COMPOUND_LED;
 }
 
 /*
@@ -159,51 +320,75 @@ function regionSequence(group, len) {
 function buildWorkout(mod, filter, len = mod.group.regions.length) {
   const { group, exercises } = mod;
   const matches = (e) => filter === 'All' || e.equipment === filter;
-  const used = new Set();
-  const out = [];
-
-  // Target reps stand in for how heavy a movement is: presses and squats sit
-  // at 5-10 reps, isolation and burnout work at 12+.
-  const heaviness = (e) => {
-    // Bodyweight compounds are prescribed by effort, not reps. They are
-    // anchors — pull-ups and dips open a session, they do not close it.
-    if (/as many as you can/i.test(e.setsReps)) return 8;
-    const m = /×\s*(\d+)/.exec(e.setsReps);
-    return m ? +m[1] : 13;   // anything else without a rep count is a finisher
-  };
-
   const seq = regionSequence(group, len);
-  const seen = {};
-  for (const region of seq) {
+
+  const picked = [];
+  const used = new Set();
+  const opened = new Set();
+
+  for (let slot = 0; slot < seq.length; slot++) {
+    const region = seq[slot];
     const inRegion = exercises.filter((e) => e.target === region && !used.has(e.id));
     if (!inRegion.length) continue;
     // Prefer the chosen equipment, but never return a short workout because
     // of it — fall back to the whole region rather than dropping a slot.
-    let eligible = inRegion.filter(matches);
-    if (!eligible.length) eligible = inRegion;
-    // A muscle's first exercise of the day should anchor it with something
-    // heavy, so the day never comes out as all flys and finishers.
-    if (!seen[region]) {
-      const heavy = eligible.filter((e) => heaviness(e) <= 10);
-      if (heavy.length) eligible = heavy;
-      seen[region] = true;
-    }
-    const chosen = pick(eligible, used);
-    out.push(chosen.id);
-    used.add(chosen.id);
+    let pool = inRegion.filter(matches);
+    if (!pool.length) pool = inRegion;
+
+    /*
+     * Every muscle opens with a compound — that is what anchors it, and
+     * skipping it is how you end up with an upper chest trained entirely by
+     * flys. A muscle's *second* slot is accessory work by the same logic:
+     * squat then leg extension, bench then fly, barbell row then a pullover.
+     *
+     * Both sides degrade on their own. Muscles that are not compound-led
+     * never ask for one; muscles with no isolation at all (every rhomboid
+     * movement is a row) let the remaining terms pick the most different row.
+     */
+    const wantCompound = !opened.has(region)
+      && leadsWithCompound(region, exercises)
+      && pool.some((e) => e.pattern === 'compound');
+
+    const ctx = { slot, len: seq.length, wantCompound, tally: tallyOf(picked) };
+    const best = chooseScored(pool.map((e) => [e, scoreCandidate(e, ctx)]));
+
+    picked.push(best);
+    used.add(best.id);
+    opened.add(region);
   }
 
-  // Within each muscle's slots, heavy low-rep work comes before high-rep
-  // isolation — close-grip bench before kickbacks, barbell curl before
-  // machine curl. The slot pattern itself (which muscle when) is untouched.
-  const byIdOf = (id) => exercises.find((e) => e.id === id);
+  // Within each muscle's slots the compound leads and the heavier work comes
+  // first — barbell row before face pull, close-grip bench before kickbacks.
+  // The slot pattern itself (which muscle when) is untouched.
+  const RANK = { heavy: 0, moderate: 1, high: 2 };
+  const rank = (e) => (e.pattern === 'compound' ? 0 : 10) + RANK[repBucket(e)];
+  const out = picked.map((e) => e.id);
   for (const region of new Set(seq)) {
     const slots = [];
-    out.forEach((id, i) => { if (byIdOf(id).target === region) slots.push(i); });
-    const ordered = slots.map((i) => out[i]).sort((a, b) => heaviness(byIdOf(a)) - heaviness(byIdOf(b)));
-    slots.forEach((i, k) => { out[i] = ordered[k]; });
+    picked.forEach((e, i) => { if (e.target === region) slots.push(i); });
+    const ordered = slots.map((i) => picked[i]).sort((a, b) => rank(a) - rank(b));
+    slots.forEach((i, k) => { out[i] = ordered[k].id; });
   }
   return out;
+}
+
+/**
+ * Alternatives for one slot, best first, scored against the rest of the day —
+ * so swapping keeps the day balanced instead of walking the file in order.
+ * The slot keeps its role: swapping the day's opening squat offers another
+ * compound, not a leg extension.
+ */
+function slotAlternatives(mod, items, i) {
+  const { exercises, byId } = mod;
+  const cur = byId[items[i].id];
+  const others = items.filter((_, k) => k !== i).map((it) => byId[it.id]);
+  const taken = new Set(others.map((e) => e.id));
+  const pool = exercises.filter((e) => e.target === cur.target && !taken.has(e.id));
+  const ctx = { slot: i, len: items.length, wantCompound: cur.pattern === 'compound', tally: tallyOf(others) };
+  return pool
+    .map((e) => [e, scoreCandidate(e, ctx)])
+    .sort((a, b) => b[1] - a[1])
+    .map(([e]) => e);
 }
 
 const lengthFor = (mod) => {
@@ -648,10 +833,11 @@ document.addEventListener('click', async (ev) => {
       w.items[i].done = !w.items[i].done;
     } else {
       const i = +swap.dataset.swap;
-      const cur = mod.byId[w.items[i].id];
-      // Cycle to the next exercise that trains the same target region.
-      const pool = mod.exercises.filter((x) => x.target === cur.target);
-      const next = pool[(pool.findIndex((x) => x.id === cur.id) + 1) % pool.length];
+      // Cycle through the same muscle's exercises ranked best-first for this
+      // slot, so a swap keeps the day balanced rather than walking the file
+      // in order. Repeated taps still step through every option.
+      const ranked = slotAlternatives(mod, w.items, i);
+      const next = ranked[(ranked.findIndex((x) => x.id === w.items[i].id) + 1) % ranked.length];
       w.items[i] = { id: next.id, done: false };
     }
     saveWorkout(gid, w);
