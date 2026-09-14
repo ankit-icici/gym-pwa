@@ -112,12 +112,17 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
   built" below. This replaced a generator that picked at random inside each
   muscle, which could hand you three pulldown variations, four machines in a
   row, or a back day that put the biceps under all six exercises.
+- **Every day ends on a bodyweight movement**, on top of the chosen length —
+  the user asked for it as a "+1", so it is not one of the N exercises and the
+  length selector does not count it.
+- **Compound or isolation is shown in the UI** — a tag on the exercise cards
+  and workout slots, and a Type row on the exercise screen.
 
 ## How a day is built
 
-`buildWorkout` in `js/app.js`. The slot plan is unchanged — `regionSequence`
-still decides *which muscle* each numbered slot trains, and Arms still uses its
-fixed `plan`. What changed is how the exercise filling each slot is chosen.
+`buildWorkout` in `js/app.js`, in three stages: `regionSequence` decides which
+muscle each slot trains, scoring decides what fills it, and `orderDay` decides
+what order the day is performed in. A bodyweight finisher is added on top.
 
 Each candidate is scored against the day assembled so far, and the pick is
 sampled from the ones scoring within a margin of the best rather than always
@@ -137,11 +142,16 @@ The terms, each one a question a trainer would ask out loud:
 - **Secondary-muscle spread.** Repeating a tag already loaded by the day costs
   points, capped so it can never outweigh the slot's role. Six back exercises
   that all pull through the biceps is a biceps day with extra steps.
-- **Equipment spread** — not four machines, and not four barbells either.
+- **Equipment spread.** Machine, cable, barbell and dumbbell each earn a bonus
+  the first time they appear and cost on repeats, so a day draws on all four.
+  Bodyweight is deliberately left out of that bonus and mildly penalised — it
+  has its own slot at the end, and without this it crowded out the loaded work.
 - **Movement family** — not three pulldowns. Families are derived from the id
   by `familyOf()`, including the angle, because flat, incline and decline
   pressing are three different exercises and a chest day wants all three.
-- **Rep-range arc** — heavy early, higher reps late, and never all of one.
+- **A heavy anchor.** Until the day contains one heavy compound, the movements
+  that could be it are worth more. Every session is built around one.
+- **Rep-range spread** — not six sets of twelve.
 - **Level** — the hardest movements in the book do not stack.
 
 Only `pattern` is explicit data; the families and rep buckets are derived. That
@@ -151,10 +161,35 @@ muscle, and no heuristic gets it right — `cable-rear-lateral` lists three
 secondary muscles and is still a raise, `hip-thrust` lists two and anchors a
 glute day — so it is authored per exercise and `tools/validate.mjs` enforces it.
 
-The swap button uses the same scorer (`slotAlternatives`), ranking the muscle's
-other exercises against the rest of the day and cycling through them, so a swap
-keeps the day balanced and keeps the slot's role: swapping the opening squat
-offers another compound, not a leg extension.
+### Order, and the finisher
+
+`orderDay` decides when each movement is performed, which scoring deliberately
+does not: compounds first while you are fresh, accessory work after, and inside
+each half the heavier prescription leads, then the group's own muscle priority.
+That is why `loadRank` is a number rather than a bucket — a 3–6 deadlift has to
+open a back day ahead of an 8–12 pulldown, and both are "heavy".
+
+Groups with a fixed `plan` (Arms) keep the plan's order instead. Its
+alternating bi/tri pattern *is* the prescription the user wrote, and sorting it
+into "all compounds first" would throw that away; there, ordering only settles
+which of a muscle's own picks comes first.
+
+Every day then gets one extra bodyweight movement on top of the chosen length —
+push-ups closing a chest day, chin-ups closing a back day. It is outside the
+length selector on purpose: a 6-exercise day returns 7 items, the last one
+flagged `finisher: true`, rendered as "+1" rather than numbered into the
+sequence. `finisherScore` prefers a compound, on one of the group's lead
+muscles, prescribed by effort rather than by a rep count.
+
+The swap button uses the same scorers (`slotAlternatives`), ranking the
+alternatives against the rest of the day and cycling through them, so a swap
+keeps the day balanced and keeps the slot's kind: swapping the opening squat
+offers another compound, not a leg extension, and swapping the finisher offers
+another bodyweight movement rather than another quad exercise.
+
+Saved workouts are left alone — an in-progress day built by an older version
+keeps its shape until the user hits Rebuild or Clear, rather than being
+silently rewritten underneath them.
 
 Both rules degrade on their own rather than needing special cases. A muscle
 with no compound at all (biceps, calves, abs) never asks for one; a muscle with

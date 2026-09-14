@@ -209,11 +209,15 @@ main { padding: 8px 0 168px; }
 .thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .slot-num {
   position: absolute; left: 5px; top: 5px; z-index: 2;
-  width: 20px; height: 20px; border-radius: 50%;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
   display: grid; place-items: center;
   font-size: 11.5px; font-weight: 700;
   background: var(--accent); color: #fff;
 }
+/* The bodyweight finisher: an extra movement on top of the chosen length, so
+   it is marked as a bonus rather than numbered into the sequence. */
+.slot.is-bonus { border-style: dashed; }
+.slot.is-bonus .slot-num { background: var(--equip-solid); }
 
 /* Chips that label the target muscle and the kit you need */
 .tag {
@@ -223,6 +227,14 @@ main { padding: 8px 0 168px; }
 }
 .tag-muscle { background: var(--accent-bg); color: var(--accent); }
 .tag-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; }
+/* Compound vs isolation. Outlined rather than filled, so it reads as a
+   property of the movement and not as another chip like the equipment tag. */
+.tag-pattern {
+  background: transparent; border: 1px solid var(--line); color: var(--text-2);
+  /* A secondary attribute, and it shares a narrow column with the muscle tag
+     and the rep line on a phone — so it is deliberately the smallest chip. */
+  height: 21px; padding: 0 7px; font-size: 11px;
+}
 
 /* ============================================================
    Muscle-group tiles (home)
@@ -333,7 +345,7 @@ main { padding: 8px 0 168px; }
 .slot-name { font-size: 15.5px; font-weight: 620; letter-spacing: -.012em; line-height: 1.25;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .slot-body { flex: 1; min-width: 0; }
-.slot-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; min-width: 0; }
+.slot-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; min-width: 0; flex-wrap: wrap; }
 .slot-meta .tag { flex: none; }
 .slot-reps { font-size: 12.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .slot-open { gap: 11px; }

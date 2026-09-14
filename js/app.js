@@ -16,6 +16,9 @@ const REGISTRY = [
 ];
 
 const EQUIPMENT_FILTERS = ['All', 'Machine', 'Cable', 'Barbell', 'Dumbbell', 'Bodyweight'];
+/* The four loaded kinds. A built day should draw on all of them; bodyweight is
+   handled separately, by the finisher every day ends on. */
+const LOADED_EQUIPMENT = ['Machine', 'Cable', 'Barbell', 'Dumbbell'];
 /* Session lengths offered. The default is one exercise per target area —
    fewer means dropping a region, in priority order. */
 const LENGTHS = [4, 5, 6];
@@ -192,17 +195,26 @@ const familyOf = (e) => {
 };
 
 /*
- * Rep-range bucket. A session should carry one heavy anchor, moderate work in
- * the middle and something higher-rep at the end — not six sets of twelve.
- * Prescriptions by effort ("as many as you can") are anchors; prescriptions by
- * time or distance (planks, carries) are finishers.
+ * How heavy a movement is prescribed, as the first number of its rep range —
+ * lower is heavier. Prescriptions by effort ("as many as you can") sit with
+ * the heavy work; prescriptions by time or distance (planks, carries) are
+ * finishers.
+ *
+ * Kept numeric rather than bucketed because ordering needs the resolution: a
+ * 3–6 deadlift has to open a day ahead of an 8–12 pulldown, and both are
+ * "heavy".
  */
-function repBucket(e) {
-  if (/as many as you can/i.test(e.setsReps)) return 'heavy';
-  if (/\d\s*(s|m)\b|holds|rolls/.test(e.setsReps)) return 'high';
+function loadRank(e) {
+  if (/as many as you can/i.test(e.setsReps)) return 8;
+  if (/\d\s*(s|m)\b|holds|rolls/.test(e.setsReps)) return 30;
   const m = /×\s*(\d+)/.exec(e.setsReps);
-  if (!m) return 'high';
-  return m[1] <= 8 ? 'heavy' : m[1] <= 10 ? 'moderate' : 'high';
+  return m ? +m[1] : 20;
+}
+
+/* Coarse bands, for keeping a day from becoming six sets of twelve. */
+function repBucket(e) {
+  const r = loadRank(e);
+  return r <= 8 ? 'heavy' : r <= 10 ? 'moderate' : 'high';
 }
 
 /** What a part-built day has already spent, by every axis the scorer weighs. */
@@ -226,13 +238,16 @@ function tallyOf(picked) {
  * hammered, is this the fourth machine in a row, is it the third variation of
  * the same motion?
  */
-function scoreCandidate(e, { slot, len, wantCompound, tally }) {
+function scoreCandidate(e, { wantCompound, tally, needsAnchor }) {
   let s = 0;
 
-  // The right kind of movement. Compounds open a muscle and open the day;
-  // isolation earns its place once a compound has already covered the muscle.
+  // The right kind of movement. Compounds open a muscle; isolation earns its
+  // place once a compound has already covered that muscle.
   s += (e.pattern === 'compound') === wantCompound ? 30 : -18;
-  if (slot === 0 && e.pattern === 'compound') s += 20;
+
+  // Every session is built around one genuinely heavy compound. Until the day
+  // has one, the movements that could be it are worth more.
+  if (needsAnchor && e.pattern === 'compound' && repBucket(e) === 'heavy') s += 22;
 
   // Spread the borrowed work. Six back exercises that all pull through the
   // biceps is a biceps day with extra steps.
@@ -240,17 +255,21 @@ function scoreCandidate(e, { slot, len, wantCompound, tally }) {
   for (const tag of e.secondary) overlap += tally.secondary.get(tag) ?? 0;
   s -= Math.min(overlap * 8, 24);
 
-  // Not four machines — and not four barbells either.
-  s -= 7 * (tally.equipment.get(e.equipment) ?? 0);
+  // A real spread of equipment: machine, barbell, dumbbell and cable each
+  // earn a session a bonus the first time they appear, and repeats cost.
+  // Bodyweight is left out of the bonus on purpose — the day closes with a
+  // dedicated bodyweight finisher, so it does not need help getting in.
+  const already = tally.equipment.get(e.equipment) ?? 0;
+  s -= 9 * already;
+  if (LOADED_EQUIPMENT.includes(e.equipment)) { if (!already) s += 12; }
+  else s -= 8;
 
   // Not three pulldowns.
   s -= 16 * (tally.family.get(familyOf(e)) ?? 0);
 
-  // Heavy early, higher reps late, and never all of one.
-  const bucket = repBucket(e);
-  s -= 6 * (tally.bucket.get(bucket) ?? 0);
-  const pos = len > 1 ? slot / (len - 1) : 0;
-  if (bucket === (pos < 0.34 ? 'heavy' : pos < 0.67 ? 'moderate' : 'high')) s += 8;
+  // A spread of rep ranges rather than six sets of twelve. Where each one
+  // lands in the session is settled afterwards, by orderDay().
+  s -= 6 * (tally.bucket.get(repBucket(e)) ?? 0);
 
   // Don't stack the hardest movements in the book on top of each other.
   if (e.level === 'Advanced') s -= 6 * tally.advanced;
@@ -317,6 +336,58 @@ function regionSequence(group, len) {
   return seq;
 }
 
+/*
+ * Put the day in the order a trainer would coach it.
+ *
+ * Scoring decides WHAT is in the session; this decides WHEN. Compounds come
+ * first, while you are fresh and the bar is heaviest, and accessory work
+ * follows. Inside each half the heavier prescription leads, then the group's
+ * own muscle priority — so a chest day runs bench, incline, decline rather
+ * than jumping between angles, and a back day that drew a rack pull opens on
+ * it rather than on a pulldown.
+ *
+ * Groups with a fixed `plan` (Arms) keep the plan's order: its alternating
+ * bi/tri pattern IS the prescription the user wrote, and sorting it into "all
+ * compounds first" would throw that away. There, ordering only settles which
+ * of a muscle's own picks comes first.
+ */
+function orderDay(picked, group) {
+  const rank = (e) => (e.pattern === 'compound' ? 0 : 1000) + loadRank(e);
+  if (group.plan) {
+    const out = [...picked];
+    for (const region of new Set(picked.map((e) => e.target))) {
+      const slots = [];
+      picked.forEach((e, i) => { if (e.target === region) slots.push(i); });
+      const ordered = slots.map((i) => picked[i]).sort((a, b) => rank(a) - rank(b));
+      slots.forEach((i, k) => { out[i] = ordered[k]; });
+    }
+    return out;
+  }
+  return [...picked].sort((a, b) =>
+    (a.pattern === 'compound' ? 0 : 1) - (b.pattern === 'compound' ? 0 : 1)
+    || loadRank(a) - loadRank(b)
+    || group.regions.indexOf(a.target) - group.regions.indexOf(b.target));
+}
+
+/*
+ * The bodyweight finisher — one movement on top of the chosen session length.
+ *
+ * Push-ups to close a chest day, chin-ups to close a back day. It sits outside
+ * the length selector on purpose: it is a bonus, not one of the N exercises,
+ * and it is the reason the scorer does not otherwise chase bodyweight work.
+ *
+ * What makes a good one: a compound, on one of the group's lead muscles,
+ * prescribed by effort rather than by a rep count.
+ */
+function finisherScore(e, group) {
+  return (e.pattern === 'compound' ? 30 : 0)
+    + (/as many as you can/i.test(e.setsReps) ? 14 : 0)
+    - 6 * group.regions.indexOf(e.target);
+}
+
+const finisherPool = (mod, taken) =>
+  mod.exercises.filter((e) => e.equipment === 'Bodyweight' && !taken.has(e.id));
+
 function buildWorkout(mod, filter, len = mod.group.regions.length) {
   const { group, exercises } = mod;
   const matches = (e) => filter === 'All' || e.equipment === filter;
@@ -349,7 +420,8 @@ function buildWorkout(mod, filter, len = mod.group.regions.length) {
       && leadsWithCompound(region, exercises)
       && pool.some((e) => e.pattern === 'compound');
 
-    const ctx = { slot, len: seq.length, wantCompound, tally: tallyOf(picked) };
+    const needsAnchor = !picked.some((e) => e.pattern === 'compound' && repBucket(e) === 'heavy');
+    const ctx = { wantCompound, needsAnchor, tally: tallyOf(picked) };
     const best = chooseScored(pool.map((e) => [e, scoreCandidate(e, ctx)]));
 
     picked.push(best);
@@ -357,19 +429,23 @@ function buildWorkout(mod, filter, len = mod.group.regions.length) {
     opened.add(region);
   }
 
-  // Within each muscle's slots the compound leads and the heavier work comes
-  // first — barbell row before face pull, close-grip bench before kickbacks.
-  // The slot pattern itself (which muscle when) is untouched.
-  const RANK = { heavy: 0, moderate: 1, high: 2 };
-  const rank = (e) => (e.pattern === 'compound' ? 0 : 10) + RANK[repBucket(e)];
-  const out = picked.map((e) => e.id);
-  for (const region of new Set(seq)) {
-    const slots = [];
-    picked.forEach((e, i) => { if (e.target === region) slots.push(i); });
-    const ordered = slots.map((i) => picked[i]).sort((a, b) => rank(a) - rank(b));
-    slots.forEach((i, k) => { out[i] = ordered[k].id; });
+  const items = orderDay(picked, group).map((e) => ({ id: e.id, done: false }));
+
+  /*
+   * ...and one bodyweight movement on top, which is why this returns len + 1.
+   *
+   * The pool can legitimately come up empty: filtered to Bodyweight, the day
+   * itself is already bodyweight and may have used everything the group has
+   * (Shoulders owns exactly two such movements). A day with no separate
+   * finisher is the right answer there, not a bug to paper over — every other
+   * filter always leaves one.
+   */
+  const pool = finisherPool(mod, new Set(picked.map((e) => e.id)));
+  if (pool.length) {
+    const bonus = chooseScored(pool.map((e) => [e, finisherScore(e, group)]));
+    items.push({ id: bonus.id, done: false, finisher: true });
   }
-  return out;
+  return items;
 }
 
 /**
@@ -379,16 +455,22 @@ function buildWorkout(mod, filter, len = mod.group.regions.length) {
  * compound, not a leg extension.
  */
 function slotAlternatives(mod, items, i) {
-  const { exercises, byId } = mod;
+  const { exercises, byId, group } = mod;
   const cur = byId[items[i].id];
   const others = items.filter((_, k) => k !== i).map((it) => byId[it.id]);
   const taken = new Set(others.map((e) => e.id));
-  const pool = exercises.filter((e) => e.target === cur.target && !taken.has(e.id));
-  const ctx = { slot: i, len: items.length, wantCompound: cur.pattern === 'compound', tally: tallyOf(others) };
-  return pool
-    .map((e) => [e, scoreCandidate(e, ctx)])
-    .sort((a, b) => b[1] - a[1])
-    .map(([e]) => e);
+  const scored = items[i].finisher
+    // The finisher is a bodyweight slot, so it cycles through the group's
+    // other bodyweight work rather than through its own muscle.
+    ? finisherPool(mod, taken).map((e) => [e, finisherScore(e, group)])
+    : exercises
+      .filter((e) => e.target === cur.target && !taken.has(e.id))
+      .map((e) => [e, scoreCandidate(e, {
+        wantCompound: cur.pattern === 'compound',
+        needsAnchor: !others.some((o) => o.pattern === 'compound' && repBucket(o) === 'heavy'),
+        tally: tallyOf(others),
+      })]);
+  return scored.sort((a, b) => b[1] - a[1]).map(([e]) => e);
 }
 
 const lengthFor = (mod) => {
@@ -570,8 +652,12 @@ function screenHome() {
   renderInstallHint();
 }
 
+/* Compound or isolation, in the words a gym floor uses. */
+const patternLabel = (e) => (e.pattern === 'compound' ? 'Compound' : 'Isolation');
+
 const cardTag = (e) => `
   <span class="tag tag-muscle"><i class="tag-dot"></i>${MUSCLES[e.target]?.short ?? e.target}</span>
+  <span class="tag tag-pattern">${patternLabel(e)}</span>
   <span class="tag">${e.equipment}</span>`;
 
 function exerciseCard(gid, e, demo) {
@@ -668,6 +754,7 @@ async function screenDetail(gid, eid) {
       </div>
 
       <dl class="facts">
+        <div class="fact"><dt>Type</dt><dd>${patternLabel(e)}</dd></div>
         <div class="fact"><dt>Equipment</dt><dd>${e.equipment}</dd></div>
         <div class="fact"><dt>Sets &amp; reps</dt><dd>${e.setsReps}</dd></div>
         <div class="fact"><dt>Level</dt><dd>${e.level}</dd></div>
@@ -696,13 +783,14 @@ async function screenWorkout(gid) {
     const filter = store.get(`gym.filter.${gid}`, 'All');
     w = {
       date: todayKey(), filter,
-      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
+      items: buildWorkout(mod, filter, lengthFor(mod)),
     };
     saveWorkout(gid, w);
   }
 
   const done = w.items.filter((i) => i.done).length;
   const total = w.items.length;
+  const bonus = w.items.some((i) => i.finisher);
 
   root.innerHTML = `
     <div class="screen wrap">
@@ -710,25 +798,31 @@ async function screenWorkout(gid) {
         ${ringSvg(total ? done / total : 0)}
         <div class="progress-txt">
           <div class="t">${done === total ? 'Session complete. Well done.' : `${done} of ${total} finished`}</div>
-          <div class="s">Do them in this order, top to bottom${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
+          <div class="s">Do them in this order, top to bottom${bonus ? ' · ends on a bodyweight finisher' : ''}${w.filter !== 'All' ? ` · ${w.filter}` : ''}</div>
         </div>
       </div>
 
       <div class="stack">
         ${w.items.map((it, i) => {
           const e = byId[it.id];
-          return `<div class="slot ${it.done ? 'is-done' : ''}">
+          // The finisher is the bonus movement on top of the chosen length, so
+          // it is numbered "+1" rather than taking the next slot number.
+          const swapLabel = it.finisher
+            ? `Swap ${e.name} for another bodyweight exercise`
+            : `Swap ${e.name} for another ${MUSCLES[e.target].short} exercise`;
+          return `<div class="slot ${it.done ? 'is-done' : ''} ${it.finisher ? 'is-bonus' : ''}">
             <button class="slot-open" data-go="#/g/${gid}/e/${e.id}">
-              <span class="thumb"><span class="slot-num">${i + 1}</span><img class="thumb-img" src="${demo(e.id, 1)}" alt="" loading="lazy" decoding="async"></span>
+              <span class="thumb"><span class="slot-num">${it.finisher ? '+1' : i + 1}</span><img class="thumb-img" src="${demo(e.id, 1)}" alt="" loading="lazy" decoding="async"></span>
               <span class="slot-body">
                 <span class="slot-name">${e.name}</span>
                 <span class="slot-meta">
                   <span class="tag tag-muscle"><i class="tag-dot"></i>${MUSCLES[e.target].short}</span>
+                  <span class="tag tag-pattern">${patternLabel(e)}</span>
                   <span class="slot-reps">${e.setsReps}</span>
                 </span>
               </span>
             </button>
-            <button class="slot-swap" data-swap="${i}" aria-label="Swap ${e.name} for another ${MUSCLES[e.target].short} exercise">${svgIcon('swap')}</button>
+            <button class="slot-swap" data-swap="${i}" aria-label="${swapLabel}">${svgIcon('swap')}</button>
             <button class="tick" data-tick="${i}" aria-pressed="${it.done}" aria-label="Mark ${e.name} ${it.done ? 'not done' : 'done'}">${svgIcon('check')}</button>
           </div>`;
         }).join('')}
@@ -815,7 +909,7 @@ document.addEventListener('click', async (ev) => {
     const filter = store.get(`gym.filter.${gid}`, 'All');
     saveWorkout(gid, {
       date: todayKey(), filter,
-      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
+      items: buildWorkout(mod, filter, lengthFor(mod)),
     });
     go(`#/w/${gid}`);
     return;
@@ -838,7 +932,8 @@ document.addEventListener('click', async (ev) => {
       // in order. Repeated taps still step through every option.
       const ranked = slotAlternatives(mod, w.items, i);
       const next = ranked[(ranked.findIndex((x) => x.id === w.items[i].id) + 1) % ranked.length];
-      w.items[i] = { id: next.id, done: false };
+      // Keep the slot's kind: swapping the finisher leaves it the finisher.
+      w.items[i] = { id: next.id, done: false, ...(w.items[i].finisher && { finisher: true }) };
     }
     saveWorkout(gid, w);
     releaseMedia();
@@ -854,7 +949,7 @@ document.addEventListener('click', async (ev) => {
     const filter = cur?.filter ?? 'All';
     saveWorkout(gid, {
       date: todayKey(), filter,
-      items: buildWorkout(mod, filter, lengthFor(mod)).map((id) => ({ id, done: false })),
+      items: buildWorkout(mod, filter, lengthFor(mod)),
     });
     releaseMedia();
     await screenWorkout(gid);

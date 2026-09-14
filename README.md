@@ -36,16 +36,22 @@ muscle it primarily trains:
   — front view for chest, biceps, quads and abs, back view for lats, glutes and
   hamstrings — plus what it also works.
 - **Build a day, the way a trainer would.** One tap covers every target area
-  and numbers the exercises in the sequence to perform them. Each muscle opens
-  with a compound and follows it with accessory work — squat then leg
-  extension, bench then fly — unless it is a muscle trained by isolation in the
-  first place, where the lateral raise leads and no upright row is forced in.
-  The day is then balanced across equipment, rep ranges and the secondary
-  muscles every movement borrows, so it never comes out as three pulldowns,
-  four machines in a row, or a back day that puts the biceps under all six
-  exercises. Arm day follows a fixed plan — 4 biceps, 3 triceps, 2 forearms,
-  alternating. Tick them off, swap any slot for another movement that fits it,
-  or rebuild for a genuinely different day.
+  and numbers the exercises in the order to perform them: the heavy compounds
+  first while you are fresh — a back day that draws a deadlift opens on it —
+  then accessory work. Each muscle opens with a compound and follows it with
+  isolation, squat then leg extension, bench then fly, unless it is a muscle
+  trained by isolation in the first place, where the lateral raise leads and no
+  upright row is forced in. The day is balanced across machine, barbell,
+  dumbbell and cable, across rep ranges, and across the secondary muscles every
+  movement borrows — so it never comes out as three pulldowns, four machines in
+  a row, or a back day that puts the biceps under all six exercises.
+- **Every day ends on a bodyweight movement.** Push-ups to close a chest day,
+  chin-ups to close a back day — an extra "+1" on top of the length you chose,
+  not one of the exercises counted against it.
+- **Compound or isolation, labelled.** Every exercise says which it is, so the
+  shape of the day is visible rather than implied. Arm day follows a fixed plan
+  — 4 biceps, 3 triceps, 2 forearms, alternating. Tick them off, swap any slot
+  for another movement that fits it, or rebuild for a genuinely different day.
 - **Works offline, installs to the home screen, light and dark themes.**
 
 ## Running it locally
