@@ -64,10 +64,11 @@ npx serve -l 4173 .
 Then open `http://localhost:4173`. (`python3 -m http.server 4173` works too,
 but caches ES modules — you will need to hard-reload after every edit.)
 
-After changing exercise data, run the rule checker:
+After changing exercise data or the day builder, run the checkers:
 
 ```bash
 node tools/validate.mjs
+node tools/test-builder.mjs
 ```
 
 ## Deploying
@@ -84,12 +85,14 @@ index.html            app shell
 manifest.webmanifest  PWA manifest
 sw.js                 service worker (offline shell, photos included)
 css/app.css           design tokens + all styling
-js/app.js             router, screens, demo player, workout generator, theme
+js/app.js             router, screens, demo player, theme
+js/workout.js         the day builder (pure, no DOM — see tools/test-builder.mjs)
 js/anatomy.js         front + back body maps, and the gym-name registry
 js/data/*.js          the six muscle groups (back, chest, shoulders, arms, legs, core)
 img/demo/             440 demonstration photos (public domain, free-exercise-db)
 icons/                app icons (PNG, generated)
 tools/validate.mjs    checks the data against the curation rules
+tools/test-builder.mjs checks the day builder against the training rules
 tools-make-icons.mjs  `node tools-make-icons.mjs icons` regenerates the PNGs
 .claude/launch.json   dev-server config for editor tooling
 ```

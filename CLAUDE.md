@@ -253,7 +253,8 @@ pick the most *different* row instead.
 ```
 index.html            app shell
 css/app.css           design tokens + all styling (light + dark)
-js/app.js             router, screens, demo player, workout generator, theme
+js/app.js             router, screens, demo player, theme
+js/workout.js         the day builder — pure, no DOM, so it can be tested
 js/anatomy.js         front + back body maps (SVG) + the gym-name registry
 js/data/<group>.js    six groups, 220 exercises, 10+ per region:
                         back 45 (lats, upper back, lower back, rear delts)
@@ -266,17 +267,22 @@ img/demo/             demonstration photos (public domain, 720px), <id>-0/-1.jpg
 manifest.webmanifest  PWA manifest (app name, icons, standalone display)
 icons/                generated PNG icons (see tools-make-icons.mjs below)
 tools/validate.mjs    curation-rule checker — run after any data change
+tools/test-builder.mjs day-builder checker — run after any generator change
 tools-make-icons.mjs  `node tools-make-icons.mjs icons` — regenerates the PNGs
 .claude/launch.json   dev-server config (`npx serve -l 4173 .`) for editor tooling
 sw.js                 service worker; SHELL precaches every shipped file
 tools-make-icons.mjs  regenerates the PNG icons from source
 ```
 
-## Checking the data
+## Checking your work
 
 ```bash
-node tools/validate.mjs
+node tools/validate.mjs      # the data
+node tools/test-builder.mjs  # the day builder
 ```
+
+Run both. They are the reason the rules in this file are rules and not just
+prose, and they are quick — neither needs a browser, a server or a network.
 
 This mechanically enforces the owner's curation rules — one region per
 exercise, app-wide uniqueness of ids and names, 10+ per region, at least three
@@ -299,6 +305,37 @@ replicate the same checks: validate each pick's dataset-declared
 `primaryMuscles` against the region you are putting it in, confirm the id is
 not already used anywhere in `js/data/`, then download the photo pair. Resize
 new photos with `sips -s formatOptions normal --resampleWidth 720 <file> --out <file>`.
+
+## What the source cannot give us
+
+The data was audited against all 876 entries in free-exercise-db, by muscle and
+by equipment. **It is close to the ceiling of what that source offers.** Of the
+~650 unused entries, almost all are near-duplicates of movements already here —
+43 triceps "extension" variants, 11 pulldown variants — and the movement-family
+rule means adding them would never change a prescription. Do not pad regions
+with them.
+
+These gaps are real, are the source's and not an oversight, and cannot be
+closed without a second source. Recorded so nobody audits this again:
+
+- **No body-only shoulder press** — no pike push-up. Shoulders owns exactly two
+  bodyweight movements, which is why a shoulder day's finisher is nearly always
+  the handstand push-up.
+- **No cable work for quads, hamstrings or calves**, no machine forearm work,
+  no bodyweight calf raise.
+- **No Pendlay row, seal row or Meadows row.**
+- **An adductors region is not viable** — two usable entries against a floor of
+  ten. Neck is the same (eight, mostly not strength), as the old note said.
+
+To re-run the audit, pull `dist/exercises.json` from the repo linked above and
+compare `primaryMuscles` and `equipment` against `js/data/`.
+
+One useful thing in that file: every entry carries its own `mechanic`
+(compound/isolation). It was used to cross-check the `pattern` values here —
+66 agreed, 12 differed, and all twelve were cases where it calls a reverse
+crunch or a superman "compound". Ours were kept. **Treat that field as a second
+opinion, not as an authority**, and the same goes for its muscle names, which
+are coarser than this app's regions.
 
 ## Adding a muscle group
 
@@ -381,10 +418,26 @@ needs the owner to ask for it — see "No group is special-cased" below.
 
 ## Testing and deploying
 
+Most changes can be checked without a browser at all — `js/workout.js` is pure
+and `tools/test-builder.mjs` drives it directly. Use the browser for the UI.
+
 Use `npx serve -l 4173 .` (what `.claude/launch.json` configures) — it sends
-no-cache headers, so edits show up on reload. `python3 -m http.server` also
-works but caches ES modules, so you will chase phantom bugs after an edit
-unless you hard-reload every time. Deploys: push to main; GitHub Pages publishes from branch root.
-Pages serves with max-age=600, so a just-deployed change can take up to 10
-minutes to reach an uninstalled browser; the service worker precaches with
-`cache: 'reload'` so a CACHE bump always fetches fresh files.
+no-cache headers, so edits show up on reload.
+
+**Do not check behaviour over `python3 -m http.server`.** It sends no cache
+headers at all, so the browser applies heuristic freshness to the ES modules
+and keeps serving the version it first saw. This has burned two sessions: a
+generator change looked like it had not taken effect, and the old output was
+nearly reported as a bug. Unregistering the service worker and clearing
+`caches` is not enough, because the stale copy is in the HTTP cache. If you
+must use it, serve on a **port you have not used before** — new origin, empty
+cache — or send `Cache-Control: no-store` yourself.
+
+Deploys: push to main; GitHub Pages publishes from branch root. Pages serves
+with max-age=600, so a just-deployed change can take up to 10 minutes to reach
+an uninstalled browser; the service worker precaches with `cache: 'reload'` so
+a CACHE bump always fetches fresh files.
+
+A saved workout is never rewritten underneath the user. An in-progress day
+built by an older version keeps its shape until they hit Rebuild or Clear — so
+after changing the builder, clear `localStorage` before judging the output.
