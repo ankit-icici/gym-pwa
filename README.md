@@ -10,7 +10,7 @@ If you are an AI assistant picking this project up, read `CLAUDE.md` first.
 demonstrates every movement with real photography, names the muscle each one
 trains, and builds an ordered training day in one tap.
 
-All six muscle groups are live — **219 exercises**, at least 10 per target
+All six muscle groups are live — **220 exercises**, at least 10 per target
 area, every one demonstrated with real photography and placed only under the
 muscle it primarily trains:
 
@@ -20,7 +20,7 @@ muscle it primarily trains:
 | Chest | Mid · Upper · Lower | 30 |
 | Shoulders | Front Delts · Side Delts · Traps | 33 |
 | Arms | Biceps · Triceps · Forearms | 33 |
-| Legs | Quads · Hamstrings · Glutes · Calves | 44 |
+| Legs | Quads · Hamstrings · Glutes · Calves | 45 |
 | Core | Lower Abs · Upper Abs · Obliques | 34 |
 
 ## What it does
@@ -87,7 +87,7 @@ css/app.css           design tokens + all styling
 js/app.js             router, screens, demo player, workout generator, theme
 js/anatomy.js         front + back body maps, and the gym-name registry
 js/data/*.js          the six muscle groups (back, chest, shoulders, arms, legs, core)
-img/demo/             438 demonstration photos (public domain, free-exercise-db)
+img/demo/             440 demonstration photos (public domain, free-exercise-db)
 icons/                app icons (PNG, generated)
 tools/validate.mjs    checks the data against the curation rules
 tools-make-icons.mjs  `node tools-make-icons.mjs icons` regenerates the PNGs

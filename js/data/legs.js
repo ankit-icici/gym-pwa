@@ -194,7 +194,14 @@ export const exercises = [
     cues: ["Hips stay bridged the whole set", "Drag the ball in with the heels", "Roll out slow"],
   },
 
-  /* ─────  GLUTES  (10)  ───── */
+  /* ─────  GLUTES  (11)  ───── */
+  {
+    id: "hip-abduction-machine", name: "Hip Abduction Machine",
+    equipment: "Machine", target: "glutes", pattern: "isolation",
+    secondary: [],
+    level: "Beginner", setsReps: "3 × 15–20",
+    cues: ["Sit tall, no leaning back to cheat", "Drive the knees apart, pause at the top", "Let them close slowly — no clanging"],
+  },
   {
     id: "hip-thrust", name: "Hip Thrust",
     equipment: "Barbell", target: "glutes", pattern: "compound",

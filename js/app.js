@@ -11,7 +11,7 @@ const REGISTRY = [
   { id: 'chest',     name: 'Chest',     ready: true, count: 30, areas: 3, art: 'mid_chest',   load: () => import('./data/chest.js') },
   { id: 'shoulders', name: 'Shoulders', ready: true, count: 33, areas: 3, art: 'side_delts',  load: () => import('./data/shoulders.js') },
   { id: 'arms',      name: 'Arms',      ready: true, count: 33, areas: 3, art: 'biceps',      load: () => import('./data/arms.js') },
-  { id: 'legs',      name: 'Legs',      ready: true, count: 44, areas: 4, art: 'quads',       load: () => import('./data/legs.js') },
+  { id: 'legs',      name: 'Legs',      ready: true, count: 45, areas: 4, art: 'quads',       load: () => import('./data/legs.js') },
   { id: 'core',      name: 'Core',      ready: true, count: 34, areas: 3, art: 'upper_abs',   load: () => import('./data/core.js') },
 ];
 
@@ -376,20 +376,34 @@ function regionSequence(group, len) {
  *  - Compounds go heaviest first, whatever muscle they belong to. A back day
  *    that drew a deadlift opens on the deadlift, not on a pulldown, because
  *    what matters is spending your freshest sets on the most demanding lift.
- *  - Accessories are grouped by muscle, in the group's execution order, and
- *    only then by load. You finish a muscle and move on — you do not ping-pong
- *    between obliques and lower abs, and the shrug on a shoulder day belongs
- *    after the lateral raises rather than in among them just because its rep
- *    range happens to be lower.
+ *    This is also why isolation never comes first: a fly before an incline
+ *    press pre-fatigues the pec and costs you load on the bigger lift.
+ *  - Accessories are grouped by muscle, so you finish a muscle and move on
+ *    rather than ping-ponging between obliques and lower abs — and they follow
+ *    the order the compounds established, so the muscle a day opened on is the
+ *    muscle it finishes first. On an arms day that means the close-grip bench
+ *    and the triceps accessory sit together instead of three curls apart.
  */
 function orderDay(picked, group) {
-  const isCompound = (e) => (e.pattern === 'compound' ? 0 : 1);
-  const region = (e) => group.regions.indexOf(e.target);
-  return [...picked].sort((a, b) =>
-    isCompound(a) - isCompound(b)
-    || (isCompound(a) === 0
-      ? loadRank(a) - loadRank(b) || region(a) - region(b)
-      : region(a) - region(b) || loadRank(a) - loadRank(b)));
+  const compounds = picked
+    .filter((e) => e.pattern === 'compound')
+    .sort((a, b) => loadRank(a) - loadRank(b)
+      || group.regions.indexOf(a.target) - group.regions.indexOf(b.target));
+
+  // A muscle's place in the accessory block is where its compound came in the
+  // first half. Muscles that never had one keep the group's own order, behind
+  // those that did.
+  const openedAt = new Map();
+  compounds.forEach((e, i) => { if (!openedAt.has(e.target)) openedAt.set(e.target, i); });
+  const muscleRank = (t) => (openedAt.has(t)
+    ? openedAt.get(t)
+    : compounds.length + group.regions.indexOf(t));
+
+  const accessories = picked
+    .filter((e) => e.pattern === 'isolation')
+    .sort((a, b) => muscleRank(a.target) - muscleRank(b.target) || loadRank(a) - loadRank(b));
+
+  return [...compounds, ...accessories];
 }
 
 /*

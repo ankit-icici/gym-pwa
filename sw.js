@@ -2,7 +2,7 @@
    revalidating in the background — the app opens instantly and works with no
    signal in the gym basement, and a deploy still lands on the next launch.
    Bump CACHE whenever you ship changes. */
-const CACHE = 'gym-v16';
+const CACHE = 'gym-v17';
 const SHELL = [
   './',
   './index.html',
@@ -228,6 +228,8 @@ const SHELL = [
   './img/demo/high-to-low-cable-fly-1.jpg',
   './img/demo/hip-raise-0.jpg',
   './img/demo/hip-raise-1.jpg',
+  './img/demo/hip-abduction-machine-0.jpg',
+  './img/demo/hip-abduction-machine-1.jpg',
   './img/demo/hip-thrust-0.jpg',
   './img/demo/hip-thrust-1.jpg',
   './img/demo/incline-barbell-press-0.jpg',

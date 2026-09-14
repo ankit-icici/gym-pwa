@@ -210,10 +210,21 @@ glute day — so it is authored per exercise and `tools/validate.mjs` enforces i
 ### Order, and the finisher
 
 `orderDay` decides when each movement is performed, which scoring deliberately
-does not: compounds first while you are fresh, accessory work after, and inside
-each half the heavier prescription leads, then the group's own muscle priority.
-That is why `loadRank` is a number rather than a bucket — a 3–6 deadlift has to
-open a back day ahead of an 8–12 pulldown, and both are "heavy".
+does not. Compounds first, heaviest first, whatever muscle they belong to —
+that is why `loadRank` is a number rather than a bucket, since a 3–6 deadlift
+has to open a back day ahead of an 8–12 pulldown and both are "heavy".
+Accessories follow, grouped by muscle, in the order the compounds established.
+
+**A day therefore looks like it alternates muscles, and that is correct.** A
+chest day runs bench, incline, decline, then three flys — not bench, fly,
+incline, fly. The sub-regions of a chest are one muscle at three angles, there
+is nothing to "finish", and an isolation movement placed before a compound
+pre-fatigues the muscle and costs you load on the bigger lift. Finishing one
+muscle before starting the next is a real convention, but it belongs to
+sessions that train several muscle *groups* (chest then triceps), not to a
+single-group day. Where it does apply — the accessory block — the code already
+does it: both lower-ab movements sit together, and an arms day puts the
+close-grip bench next to its triceps accessory rather than three curls later.
 
 Every day then gets one extra bodyweight movement on top of the chosen length —
 push-ups closing a chest day, chin-ups closing a back day. It is outside the
@@ -244,12 +255,12 @@ index.html            app shell
 css/app.css           design tokens + all styling (light + dark)
 js/app.js             router, screens, demo player, workout generator, theme
 js/anatomy.js         front + back body maps (SVG) + the gym-name registry
-js/data/<group>.js    six groups, 219 exercises, 10+ per region:
+js/data/<group>.js    six groups, 220 exercises, 10+ per region:
                         back 45 (lats, upper back, lower back, rear delts)
                         chest 30 (mid, upper, lower)
                         shoulders 33 (front delts, side delts, traps)
                         arms 33 (biceps, triceps, forearms)
-                        legs 44 (quads, hamstrings, glutes, calves)
+                        legs 45 (quads, hamstrings, glutes, calves)
                         core 34 (lower abs, upper abs, obliques)
 img/demo/             demonstration photos (public domain, 720px), <id>-0/-1.jpg
 manifest.webmanifest  PWA manifest (app name, icons, standalone display)
