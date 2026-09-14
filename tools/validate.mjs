@@ -97,10 +97,14 @@ for (const file of groupFiles) {
     }
   }
 
-  // A fixed plan (Arms) must only reference regions the group actually has.
-  for (const region of group.plan ?? []) {
-    if (!group.regions.includes(region)) note(`${gid}: plan references unknown region "${region}"`);
-  }
+  /*
+   * No group is special-cased any more. An earlier session recorded a fixed
+   * "4 biceps, 3 triceps, 2 forearms, alternating" plan for Arms as the
+   * owner's spec; the owner has since said they never asked for that, and the
+   * plan machinery went with it. Catch a reintroduction rather than silently
+   * ignoring a field nothing reads.
+   */
+  if (group.plan) note(`${gid}: has a group.plan, but the plan feature was removed — see CLAUDE.md`);
 }
 
 /*

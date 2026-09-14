@@ -49,8 +49,7 @@ muscle it primarily trains:
   chin-ups to close a back day — an extra "+1" on top of the length you chose,
   not one of the exercises counted against it.
 - **Compound or isolation, labelled.** Every exercise says which it is, so the
-  shape of the day is visible rather than implied. Arm day follows a fixed plan
-  — 4 biceps, 3 triceps, 2 forearms, alternating. Tick them off, swap any slot
+  shape of the day is visible rather than implied. Tick them off, swap any slot
   for another movement that fits it, or rebuild for a genuinely different day.
 - **Works offline, installs to the home screen, light and dark themes.**
 

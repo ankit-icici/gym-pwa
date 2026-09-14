@@ -322,14 +322,12 @@ function leadsWithCompound(region, exercises) {
 }
 
 /*
- * The region sequence IS the execution order of the day. Groups with an
- * explicit `plan` (Arms: 4 biceps, 3 triceps, 2 forearms) use it verbatim;
- * everyone else wraps around the priority list and then sorts, so a
- * 6-exercise day on 4 regions comes out as two lat movements, two rows,
- * lower back, rear delts — compounds first, isolation last.
+ * Which muscle each slot trains. Wraps around the group's priority list, so a
+ * 6-exercise day on 4 regions doubles up the top two — and every region of the
+ * group is covered before any is repeated, which is what guarantees an arms
+ * day trains both biceps and triceps.
  */
 function regionSequence(group, len) {
-  if (group.plan) return [...group.plan];
   const seq = [];
   for (let k = 0; seq.length < len; k++) seq.push(group.regions[k % group.regions.length]);
   seq.sort((a, b) => group.regions.indexOf(a) - group.regions.indexOf(b));
@@ -345,24 +343,8 @@ function regionSequence(group, len) {
  * own muscle priority — so a chest day runs bench, incline, decline rather
  * than jumping between angles, and a back day that drew a rack pull opens on
  * it rather than on a pulldown.
- *
- * Groups with a fixed `plan` (Arms) keep the plan's order: its alternating
- * bi/tri pattern IS the prescription the user wrote, and sorting it into "all
- * compounds first" would throw that away. There, ordering only settles which
- * of a muscle's own picks comes first.
  */
 function orderDay(picked, group) {
-  const rank = (e) => (e.pattern === 'compound' ? 0 : 1000) + loadRank(e);
-  if (group.plan) {
-    const out = [...picked];
-    for (const region of new Set(picked.map((e) => e.target))) {
-      const slots = [];
-      picked.forEach((e, i) => { if (e.target === region) slots.push(i); });
-      const ordered = slots.map((i) => picked[i]).sort((a, b) => rank(a) - rank(b));
-      slots.forEach((i, k) => { out[i] = ordered[k]; });
-    }
-    return out;
-  }
   return [...picked].sort((a, b) =>
     (a.pattern === 'compound' ? 0 : 1) - (b.pattern === 'compound' ? 0 : 1)
     || loadRank(a) - loadRank(b)
@@ -474,20 +456,9 @@ function slotAlternatives(mod, items, i) {
 }
 
 const lengthFor = (mod) => {
-  if (mod.group.plan) return mod.group.plan.length;
   const saved = store.get(`gym.len.${mod.group.id}`, 6);
   return Math.min(Math.max(saved, LENGTHS[0]), LENGTHS[LENGTHS.length - 1]);
 };
-
-/** "4 biceps · 3 triceps · 2 forearms" — a plan summary for the dock. */
-function planLabel(group) {
-  const counts = [];
-  for (const r of group.plan) {
-    const hit = counts.find((c) => c.r === r);
-    if (hit) hit.n++; else counts.push({ r, n: 1 });
-  }
-  return counts.map((c) => `${c.n} ${(MUSCLES[c.r]?.short ?? c.r).toLowerCase()}`).join(' · ');
-}
 
 const workoutKey = (gid) => `gym.workout.${gid}`;
 const saveWorkout = (gid, w) => store.set(workoutKey(gid), w);
@@ -715,13 +686,11 @@ async function screenGroup(gid) {
     </div>
     <div class="dock">
       <div class="dock-in">
-        ${group.plan
-          ? `<div class="seg"><span class="seg-label">${planLabel(group)}</span></div>`
-          : `<div class="seg" role="group" aria-label="Exercises per session">
-              <span class="seg-label">Exercises</span>
-              ${LENGTHS.map((n) => `
-                <button class="seg-btn" data-len="${n}" aria-pressed="${n === len}">${n}</button>`).join('')}
-            </div>`}
+        <div class="seg" role="group" aria-label="Exercises per session">
+          <span class="seg-label">Exercises</span>
+          ${LENGTHS.map((n) => `
+            <button class="seg-btn" data-len="${n}" aria-pressed="${n === len}">${n}</button>`).join('')}
+        </div>
         <button class="btn" data-build="${gid}">${svgIcon('bolt')} Build ${group.name} Day</button>
       </div>
     </div>`;

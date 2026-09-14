@@ -49,6 +49,26 @@ on every back tap and a phone swipe-back bounced the user forward again.
   history at all — it calls `goReplace()`, because the workout it was showing
   no longer exists.
 
+## No group is special-cased
+
+Arms used to carry a fixed `group.plan` — 4 biceps, 3 triceps, 2 forearms,
+alternating bi/tri — introduced in commit a2ec42a and described there and in
+this file as "per the user's spec".
+
+**It was not.** The user has since said they never asked for alternation; what
+they asked for was that an arms day train both biceps and triceps. The plan,
+the alternation and the hidden length selector that came with it have all been
+removed, and Arms now behaves like every other group: the 4/5/6 selector, the
+same ordering, the same bodyweight finisher. Covering every region of a group
+before repeating any is what makes "both biceps and triceps" true, and it is
+true of every group, so nothing needs special-casing to get it.
+
+The lesson is worth more than the change: **do not write "the user said X" into
+this file unless the user actually said X.** Once it is written down it gets
+believed, repeated back to them as fact, and defended in code comments. If you
+are recording a design decision you made yourself, say so — `validate.mjs`
+fails a group that reintroduces `plan`, so this cannot quietly come back.
+
 ## The user's standing preferences
 
 These were established over several rounds of feedback. Treat them as
@@ -104,10 +124,12 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 - Session length is selectable (4/5/6). `group.regions` is priority order; the
   generator wraps around it, so a 6-exercise day on 4 regions doubles up the
   top priorities (two lat movements, two rows) like a real back day.
-- **A built day is an ordered program, not a list.** Slots are numbered and the
-  region sequence is the execution order. Arms has a fixed `group.plan` from
-  the user — 4 biceps, 3 triceps, 2 forearms, alternating bi/tri with grip work
-  last — and plan groups hide the length selector.
+- **A built day is an ordered program, not a list.** Slots are numbered, and
+  the order is the order to train in.
+- **An arms day trains both biceps and triceps.** That is the whole of what the
+  user asked for here — see "No group is special-cased" below. Every group's
+  day covers all of its regions before repeating any, so this holds by
+  construction rather than by special-casing Arms.
 - **A built day should read like a trainer wrote it** — see "How a day is
   built" below. This replaced a generator that picked at random inside each
   muscle, which could hand you three pulldown variations, four machines in a
@@ -169,11 +191,6 @@ each half the heavier prescription leads, then the group's own muscle priority.
 That is why `loadRank` is a number rather than a bucket — a 3–6 deadlift has to
 open a back day ahead of an 8–12 pulldown, and both are "heavy".
 
-Groups with a fixed `plan` (Arms) keep the plan's order instead. Its
-alternating bi/tri pattern *is* the prescription the user wrote, and sorting it
-into "all compounds first" would throw that away; there, ordering only settles
-which of a muscle's own picks comes first.
-
 Every day then gets one extra bodyweight movement on top of the chosen length —
 push-ups closing a chest day, chin-ups closing a back day. It is outside the
 length selector on purpose: a 6-exercise day returns 7 items, the last one
@@ -207,7 +224,7 @@ js/data/<group>.js    six groups, 219 exercises, 10+ per region:
                         back 45 (lats, upper back, lower back, rear delts)
                         chest 30 (mid, upper, lower)
                         shoulders 33 (front delts, side delts, traps)
-                        arms 33 (biceps, triceps, forearms — fixed 4/3/2 plan)
+                        arms 33 (biceps, triceps, forearms)
                         legs 44 (quads, hamstrings, glutes, calves)
                         core 34 (lower abs, upper abs, obliques)
 img/demo/             demonstration photos (public domain, 720px), <id>-0/-1.jpg
@@ -318,9 +335,8 @@ display names must follow the no-Latin rule.
    derives these automatically.
 7. Run `node tools/validate.mjs` and fix anything it reports.
 
-Optionally give the group a fixed `plan` (an array of region keys, one per
-slot) if the owner has specified an exact make-up — Arms uses this for its
-4 biceps / 3 triceps / 2 forearms day. Plan groups hide the length selector.
+There is no per-group override for the make-up of a day, and adding one back
+needs the owner to ask for it — see "No group is special-cased" below.
 
 ## Testing and deploying
 

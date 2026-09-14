@@ -12,8 +12,6 @@ export const group = {
   name: "Arms",
   tagline: "Biceps, triceps and a grip that lasts",
   regions: ["biceps", "triceps", "forearms"],
-  // Execution plan set by the user: 4 biceps, 3 triceps, 2 forearms, alternating bi/tri with grip work last
-  plan: ["biceps", "triceps", "biceps", "triceps", "biceps", "triceps", "biceps", "forearms", "forearms"],
 };
 
 export const exercises = [
