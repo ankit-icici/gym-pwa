@@ -20,6 +20,14 @@ export const group = {
   name: 'Back',
   tagline: 'Width, thickness and a spine that holds up',
   regions: ['lats', 'rhomboids', 'erectors', 'rear_delts'],
+  /*
+   * Share of a day's slots. Lats and upper back are the back — vertical and
+   * horizontal pulling in equal measure. The lower back takes heavy indirect
+   * work from every deadlift and row and is slow to recover, so it gets one
+   * slot, not two; rear delts are a small muscle that wants frequency rather
+   * than volume.
+   */
+  volume: { lats: 3, rhomboids: 3, erectors: 1, rear_delts: 1 },
 };
 
 export const exercises = [

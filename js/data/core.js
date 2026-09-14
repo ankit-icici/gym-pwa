@@ -12,6 +12,12 @@ export const group = {
   name: "Core",
   tagline: "A midsection that braces as well as it looks",
   regions: ["lower_abs", "upper_abs", "obliques"],
+  /*
+   * Share of a day's slots. The three sections are trained evenly: none is
+   * incidental to the others, and no part of the midsection is big enough or
+   * slow enough to recover to justify crowding out another.
+   */
+  volume: { lower_abs: 2, upper_abs: 2, obliques: 2 },
 };
 
 export const exercises = [

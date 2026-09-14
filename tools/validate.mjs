@@ -87,6 +87,25 @@ for (const file of groupFiles) {
     if (e.secondary?.includes(e.target)) note(`${gid}/${e.id}: lists its own target as secondary`);
   }
 
+  /*
+   * Rule: every region declares the share of a day it earns.
+   *
+   * This drives how many slots each muscle gets, and like `pattern` it is a
+   * trainer's judgement that nothing else in the data encodes — deriving it
+   * from the order of `group.regions` is exactly the bug this replaced, since
+   * that list is execution order. A missing weight would silently hand the
+   * muscle NaN slots.
+   */
+  for (const region of group.regions) {
+    const w = group.volume?.[region];
+    if (!Number.isInteger(w) || w < 1) {
+      note(`${gid}/${region}: group.volume weight is ${JSON.stringify(w)} — needs a positive integer`);
+    }
+  }
+  for (const region of Object.keys(group.volume ?? {})) {
+    if (!group.regions.includes(region)) note(`${gid}: group.volume has "${region}", which is not a region`);
+  }
+
   // Rule: at least ten exercises per region, with a mix of equipment.
   for (const region of group.regions) {
     const n = perRegion[region] ?? 0;

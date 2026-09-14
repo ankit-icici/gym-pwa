@@ -12,6 +12,14 @@ export const group = {
   name: "Shoulders",
   tagline: "Caps, width and a strong press",
   regions: ["front_delts", "side_delts", "traps"],
+  /*
+   * Share of a day's slots — and note this is NOT the order below. Front delts
+   * are already hammered by every chest press, so a shoulder day owes them one
+   * or two movements, no more. Side delts are what build width, are the most
+   * commonly under-trained head, and tolerate the most volume, so they take
+   * the largest share. Traps get their shrug and are done.
+   */
+  volume: { front_delts: 2, side_delts: 3, traps: 1 },
 };
 
 export const exercises = [

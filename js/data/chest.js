@@ -12,6 +12,13 @@ export const group = {
   name: "Chest",
   tagline: "Press power and a full upper shelf",
   regions: ["mid_chest", "upper_chest", "lower_chest"],
+  /*
+   * Share of a day's slots. Flat and incline split the work: the upper chest
+   * is the half that lags on most people and earns equal billing, not
+   * leftovers. The lower chest already gets worked by flat pressing and dips,
+   * so it needs the least direct volume.
+   */
+  volume: { mid_chest: 3, upper_chest: 3, lower_chest: 2 },
 };
 
 export const exercises = [

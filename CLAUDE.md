@@ -121,9 +121,13 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 - **Gym-floor muscle names, never anatomical Latin.** "Lats", "Upper Back",
   "Lower Back", "Rear Delts" — see `MUSCLES` in `js/anatomy.js`. Applies to all
   user-visible text.
-- Session length is selectable (4/5/6). `group.regions` is priority order; the
-  generator wraps around it, so a 6-exercise day on 4 regions doubles up the
-  top priorities (two lat movements, two rows) like a real back day.
+- Session length is selectable (4/5/6), plus the bodyweight finisher on top.
+- **How much of a day each muscle gets is `group.volume`, not list order.**
+  Two things a group declares are easy to conflate and must not be:
+  `group.regions` is *execution* order, `group.volume` is *how much work the
+  muscle earns*. They genuinely differ — a shoulder day is led by the press but
+  owes most of its slots to the side delts, because the front delts are already
+  hammered by every chest press.
 - **A built day is an ordered program, not a list.** Slots are numbered, and
   the order is the order to train in.
 - **An arms day trains both biceps and triceps.** That is the whole of what the
@@ -145,6 +149,26 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 `buildWorkout` in `js/app.js`, in three stages: `regionSequence` decides which
 muscle each slot trains, scoring decides what fills it, and `orderDay` decides
 what order the day is performed in. A bodyweight finisher is added on top.
+
+### Which muscle gets how many slots
+
+`slotCounts`. Every muscle in the group gets one slot before any gets a second,
+which is what makes a day cover the whole group — and what makes "an arms day
+trains both biceps and triceps" true without special-casing Arms. The rest is
+shared out by `group.volume` (D'Hondt), so a 6-exercise shoulder day is 2 front
+delts, 3 side delts and 1 traps.
+
+Two earlier versions of this were wrong the same way, and the second is the
+instructive one. Round-robin gave whatever divided evenly — six slots over
+three muscles was two each, so a third of an arm day was wrist curls. The fix
+was to weight by position in `group.regions`, which was *worse*: that list is
+execution order, so it prescribed three front-delt movements and one side-delt
+raise, which is the opposite of what a shoulder day needs.
+
+So volume is authored per muscle in the data, the way `pattern` is, for exactly
+the same reason: it is a trainer's judgement, nothing else in the file encodes
+it, and deriving it from a field that means something else produces confident
+nonsense. `validate.mjs` requires a positive weight for every region.
 
 Each candidate is scored against the day assembled so far, and the pick is
 sampled from the ones scoring within a margin of the best rather than always
@@ -274,10 +298,16 @@ live in `MUSCLES[key].name` in `js/anatomy.js`. Keys are internal; only the
 display names must follow the no-Latin rule.
 
 1. Copy `js/data/back.js` to `js/data/<group>.js`; same exports (`group`,
-   `exercises`, `byId`, `demo`). `group` needs `id`, `name`, `tagline` and
-   `regions` — `tagline` is rendered into the group hero, so omitting it
-   prints "undefined" there. `regions` goes in priority order; it doubles as
-   the execution order of a built day.
+   `exercises`, `byId`, `demo`). `group` needs `id`, `name`, `tagline`,
+   `regions` and `volume` — `tagline` is rendered into the group hero, so
+   omitting it prints "undefined" there.
+
+   `regions` is the order a day is *performed* in. `volume` is a weight per
+   region saying how many of a day's slots that muscle earns. **These are two
+   different judgements and the second is not derivable from the first** — see
+   "Which muscle gets how many slots". Write `volume` as a trainer would
+   apportion a session, and say why in a comment above it, as the existing
+   groups do.
 
    Each exercise needs `id`, `name`, `equipment`, `target`, `pattern`,
    `secondary`, `level`, `setsReps` and `cues`. **`pattern` must be exactly

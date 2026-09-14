@@ -12,6 +12,13 @@ export const group = {
   name: "Arms",
   tagline: "Biceps, triceps and a grip that lasts",
   regions: ["biceps", "triceps", "forearms"],
+  /*
+   * Share of a day's slots. Biceps and triceps split the day evenly — the
+   * triceps are the larger two-thirds of the arm, and the bodyweight finisher
+   * an arms day ends on is a dip, which tips the real total their way.
+   * Forearms are grip work: one slot closes the day.
+   */
+  volume: { biceps: 3, triceps: 3, forearms: 1 },
 };
 
 export const exercises = [

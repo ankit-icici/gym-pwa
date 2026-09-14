@@ -322,33 +322,74 @@ function leadsWithCompound(region, exercises) {
 }
 
 /*
- * Which muscle each slot trains. Wraps around the group's priority list, so a
- * 6-exercise day on 4 regions doubles up the top two — and every region of the
- * group is covered before any is repeated, which is what guarantees an arms
- * day trains both biceps and triceps.
+ * How many slots each muscle gets.
+ *
+ * Every muscle in the group gets one before any gets a second — that is what
+ * guarantees a day covers the whole group, and what makes "an arms day trains
+ * both biceps and triceps" true without special-casing Arms.
+ *
+ * The rest is shared out by `group.volume`, the share of a session each muscle
+ * earns. Two earlier versions of this were wrong in the same way. Round-robin
+ * gave whatever divided evenly, so a third of an arm day was wrist curls.
+ * Weighting by position in `group.regions` was worse, because that list is
+ * *execution* order, not volume: it prescribed three front-delt movements and
+ * one side-delt, when front delts are already hammered by every chest press
+ * and side delts are the head that actually needs the work.
+ *
+ * So volume is authored per muscle in the data, the way `pattern` is, and for
+ * the same reason — it is a trainer's judgement and nothing else in the file
+ * encodes it. Each remaining slot goes to whichever muscle is furthest behind
+ * its share (D'Hondt), which keeps the split stable as the length changes.
  */
+function slotCounts(regions, len, volume) {
+  const counts = regions.map(() => 0);
+  for (let i = 0; i < regions.length && i < len; i++) counts[i] = 1;
+  const weight = (i) => volume[regions[i]];
+  for (let left = len - regions.length; left > 0; left--) {
+    let best = 0;
+    for (let i = 1; i < regions.length; i++) {
+      const mine = (counts[i] + 1) / weight(i);
+      const theirs = (counts[best] + 1) / weight(best);
+      // Ties go to the muscle with fewer slots so far, then to priority.
+      if (mine < theirs || (mine === theirs && counts[i] < counts[best])) best = i;
+    }
+    counts[best]++;
+  }
+  return counts;
+}
+
+/** Which muscle each numbered slot trains, in the group's priority order. */
 function regionSequence(group, len) {
-  const seq = [];
-  for (let k = 0; seq.length < len; k++) seq.push(group.regions[k % group.regions.length]);
-  seq.sort((a, b) => group.regions.indexOf(a) - group.regions.indexOf(b));
-  return seq;
+  const counts = slotCounts(group.regions, len, group.volume);
+  return group.regions.flatMap((r, i) => Array(counts[i]).fill(r));
 }
 
 /*
  * Put the day in the order a trainer would coach it.
  *
  * Scoring decides WHAT is in the session; this decides WHEN. Compounds come
- * first, while you are fresh and the bar is heaviest, and accessory work
- * follows. Inside each half the heavier prescription leads, then the group's
- * own muscle priority — so a chest day runs bench, incline, decline rather
- * than jumping between angles, and a back day that drew a rack pull opens on
- * it rather than on a pulldown.
+ * first, while you are fresh and the bar is heaviest; accessory work follows.
+ *
+ * The two halves are then ordered on different principles, because a trainer
+ * orders them on different principles:
+ *
+ *  - Compounds go heaviest first, whatever muscle they belong to. A back day
+ *    that drew a deadlift opens on the deadlift, not on a pulldown, because
+ *    what matters is spending your freshest sets on the most demanding lift.
+ *  - Accessories are grouped by muscle, in the group's execution order, and
+ *    only then by load. You finish a muscle and move on — you do not ping-pong
+ *    between obliques and lower abs, and the shrug on a shoulder day belongs
+ *    after the lateral raises rather than in among them just because its rep
+ *    range happens to be lower.
  */
 function orderDay(picked, group) {
+  const isCompound = (e) => (e.pattern === 'compound' ? 0 : 1);
+  const region = (e) => group.regions.indexOf(e.target);
   return [...picked].sort((a, b) =>
-    (a.pattern === 'compound' ? 0 : 1) - (b.pattern === 'compound' ? 0 : 1)
-    || loadRank(a) - loadRank(b)
-    || group.regions.indexOf(a.target) - group.regions.indexOf(b.target));
+    isCompound(a) - isCompound(b)
+    || (isCompound(a) === 0
+      ? loadRank(a) - loadRank(b) || region(a) - region(b)
+      : region(a) - region(b) || loadRank(a) - loadRank(b)));
 }
 
 /*

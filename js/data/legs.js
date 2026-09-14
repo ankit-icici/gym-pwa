@@ -12,6 +12,13 @@ export const group = {
   name: "Legs",
   tagline: "Squat strength from hips to heels",
   regions: ["quads", "hamstrings", "glutes", "calves"],
+  /*
+   * Share of a day's slots. Quads and hamstrings carry a leg day in equal
+   * measure — the hamstrings are the half most people skip. Glutes get heavy
+   * indirect work from every squat and hinge above them, and calves are one
+   * small movement.
+   */
+  volume: { quads: 3, hamstrings: 3, glutes: 2, calves: 1 },
 };
 
 export const exercises = [
