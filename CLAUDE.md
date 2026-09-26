@@ -131,7 +131,7 @@ demonstrations. (The removed 2D/3D rigs are in git history before commit
 - **A built day is an ordered program, not a list.** Slots are numbered, and
   the order is the order to train in.
 - **An arms day trains both biceps and triceps.** That is the whole of what the
-  user asked for here — see "No group is special-cased" below. Every group's
+  user asked for here — see "No group is special-cased" above. Every group's
   day covers all of its regions before repeating any, so this holds by
   construction rather than by special-casing Arms.
 - **A built day should read like a trainer wrote it** — see "How a day is
@@ -271,7 +271,6 @@ tools/test-builder.mjs day-builder checker — run after any generator change
 tools-make-icons.mjs  `node tools-make-icons.mjs icons` — regenerates the PNGs
 .claude/launch.json   dev-server config (`npx serve -l 4173 .`) for editor tooling
 sw.js                 service worker; SHELL precaches every shipped file
-tools-make-icons.mjs  regenerates the PNG icons from source
 ```
 
 ## Checking your work
@@ -409,12 +408,12 @@ display names must follow the no-Latin rule.
 5. Add the data file and every new photo to `SHELL` in `sw.js`, and bump
    `CACHE`. Missing entries break offline use silently.
 6. Update the numbers the docs and code hard-code: `count` and `areas` in the
-   `REGISTRY`, the group table in README, and the Layout block below. Nothing
+   `REGISTRY`, the group table in README, and the Layout block above. Nothing
    derives these automatically.
 7. Run `node tools/validate.mjs` and fix anything it reports.
 
 There is no per-group override for the make-up of a day, and adding one back
-needs the owner to ask for it — see "No group is special-cased" below.
+needs the owner to ask for it — see "No group is special-cased" above.
 
 ## Testing and deploying
 
