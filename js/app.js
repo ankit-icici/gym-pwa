@@ -1,5 +1,6 @@
 import { createAnatomy, MUSCLES } from './anatomy.js';
 import { buildWorkout, slotAlternatives } from './workout.js';
+import { searchExercises } from './search.js';
 
 /* ============================================================
    Muscle-group registry.
@@ -74,6 +75,8 @@ const ICON = {
   spark: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/>',
   add: '<path d="M12 5v14M5 12h14"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>',
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
 const svgIcon = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
 
@@ -257,6 +260,15 @@ function screenHome() {
         <p>Real demonstrations for every movement, in the order you should do them, with the muscle each one hits.</p>
       </header>
 
+      <div class="search" role="search">
+        ${svgIcon('search')}
+        <input type="search" data-search value="${esc(query)}" placeholder="Search all exercises" aria-label="Search all exercises"
+          autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <button class="search-clear" data-search-clear aria-label="Clear search" ${query ? '' : 'hidden'}>${svgIcon('close')}</button>
+      </div>
+      <div id="search-results" aria-live="polite"></div>
+
+      <div id="home-main" ${query.trim() ? 'hidden' : ''}>
       ${saved.length ? `
         <div class="section-head"><h2>In progress</h2></div>
         <div class="stack">
@@ -286,6 +298,7 @@ function screenHome() {
       </div>
 
       <div id="install-slot"></div>
+      </div>
     </div>`;
 
   root.querySelectorAll('.tile.is-live').forEach((tile, i) => {
@@ -297,6 +310,36 @@ function screenHome() {
     tile.appendChild(art);
   });
   renderInstallHint();
+  if (query.trim()) showResults();
+}
+
+/* ============================================================
+   Search — across every group, from the home screen.
+   Typing re-renders the results in place and never touches history, like
+   every other in-page control. The query outlives the screen, so opening a
+   result and coming back finds the list where it was left.
+   ============================================================ */
+let query = '';
+
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+async function showResults() {
+  const box = document.getElementById('search-results');
+  const main = document.getElementById('home-main');
+  if (!box || !main) return;
+  const q = query;
+  if (!q.trim()) { box.innerHTML = ''; main.hidden = false; return; }
+
+  const mods = await Promise.all(REGISTRY.filter((g) => g.ready).map((g) => loadGroup(g.id)));
+  if (q !== query || !document.getElementById('search-results')) return; // typed on, or left
+  const results = searchExercises(mods, q, MUSCLES);
+  const demoOf = new Map(mods.map((m) => [m.group.id, m.demo]));
+
+  main.hidden = true;
+  box.innerHTML = results.length ? `
+    <div class="section-head"><h2>Results</h2><span class="count">${results.length}</span></div>
+    <div class="grid">${results.map(({ group, e }) => exerciseCard(group.id, e, demoOf.get(group.id), group.name)).join('')}</div>`
+    : `<div class="empty"><div class="e-t">No exercise matches “${esc(q.trim())}”</div><div class="e-s">Try fewer words, or the muscle — “lats”, “quads”.</div></div>`;
 }
 
 /* Compound or isolation, in the words a gym floor uses. */
@@ -307,13 +350,13 @@ const cardTag = (e) => `
   <span class="tag tag-pattern">${patternLabel(e)}</span>
   <span class="tag">${e.equipment}</span>`;
 
-function exerciseCard(gid, e, demo) {
+function exerciseCard(gid, e, demo, groupName = '') {
   return `<button class="card" data-go="#/g/${gid}/e/${e.id}">
     <span class="thumb"><img class="thumb-img" src="${demo(e.id, 1)}" alt="" loading="lazy" decoding="async"></span>
     <span class="card-body">
       <span class="card-name">${e.name}</span>
       <span class="card-meta">${cardTag(e)}</span>
-      <span class="card-sub">${e.setsReps}</span>
+      <span class="card-sub">${groupName ? `${groupName} · ` : ''}${e.setsReps}</span>
     </span>
     <span class="card-go">${svgIcon('chevron')}</span>
   </button>`;
@@ -532,6 +575,16 @@ document.addEventListener('click', async (ev) => {
 
   if (ev.target.closest('[data-theme-toggle]')) { cycleTheme(); return; }
 
+  if (ev.target.closest('[data-search-clear]')) {
+    query = '';
+    const input = root.querySelector('[data-search]');
+    input.value = '';
+    root.querySelector('[data-search-clear]').hidden = true;
+    showResults();
+    input.focus();
+    return;
+  }
+
   const len = ev.target.closest('[data-len]');
   if (len) {
     store.set(`gym.len.${parseRoute().group}`, +len.dataset.len);
@@ -621,6 +674,18 @@ document.addEventListener('click', async (ev) => {
     store.set('gym.installDismissed', true);
     document.getElementById('install-slot').innerHTML = '';
   }
+});
+
+document.addEventListener('input', (ev) => {
+  if (!ev.target.matches('[data-search]')) return;
+  query = ev.target.value;
+  root.querySelector('[data-search-clear]').hidden = !query;
+  showResults();
+});
+
+// Enter closes the phone keyboard so the results can be seen.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' && ev.target.matches('[data-search]')) ev.target.blur();
 });
 
 addEventListener('scroll', () => {

@@ -255,6 +255,7 @@ index.html            app shell
 css/app.css           design tokens + all styling (light + dark)
 js/app.js             router, screens, demo player, theme
 js/workout.js         the day builder — pure, no DOM, so it can be tested
+js/search.js          cross-group exercise search (home screen) — pure, no DOM
 js/anatomy.js         front + back body maps (SVG) + the gym-name registry
 js/data/<group>.js    six groups, 220 exercises, 10+ per region:
                         back 45 (lats, upper back, lower back, rear delts)
